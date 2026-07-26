@@ -44,11 +44,10 @@ impl SessionState {
 
     pub fn load() -> Self {
         let path = Self::state_path();
-        if path.exists() {
-            if let Ok(contents) = fs::read_to_string(&path) {
-                if let Ok(st) = serde_json::from_str::<SessionState>(&contents) {
-                    return st;
-                }
+        if let Ok(contents) = fs::read_to_string(&path) {
+            match serde_json::from_str::<SessionState>(&contents) {
+                Ok(st) => return st,
+                Err(_) => eprintln!("Warning: Failed to parse state.json, using default session state."),
             }
         }
         Self::default()

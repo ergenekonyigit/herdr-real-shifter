@@ -1,26 +1,45 @@
 use realshifter_core::{Config, GearPosition, SessionState};
+use std::fs;
 use std::process::Command;
+use std::time::SystemTime;
 
 pub struct App {
     pub config: Config,
     pub state: SessionState,
     pub should_quit: bool,
     pub status_message: String,
+    last_state_mtime: Option<SystemTime>,
+    last_config_mtime: Option<SystemTime>,
 }
 
 impl App {
     pub fn new() -> Self {
-        Self {
-            config: Config::load(),
-            state: SessionState::load(),
+        let mut app = Self {
+            config: Config::default(),
+            state: SessionState::default(),
             should_quit: false,
             status_message: "Ready".to_string(),
-        }
+            last_state_mtime: None,
+            last_config_mtime: None,
+        };
+        app.refresh();
+        app
     }
 
     pub fn refresh(&mut self) {
-        self.config = Config::load();
-        self.state = SessionState::load();
+        let cfg_path = Config::config_path();
+        let cfg_mtime = fs::metadata(&cfg_path).and_then(|m| m.modified()).ok();
+        if cfg_mtime != self.last_config_mtime || self.last_config_mtime.is_none() {
+            self.config = Config::load();
+            self.last_config_mtime = cfg_mtime;
+        }
+
+        let st_path = SessionState::state_path();
+        let st_mtime = fs::metadata(&st_path).and_then(|m| m.modified()).ok();
+        if st_mtime != self.last_state_mtime || self.last_state_mtime.is_none() {
+            self.state = SessionState::load();
+            self.last_state_mtime = st_mtime;
+        }
     }
 
     pub fn shift_gear(&mut self, gear: GearPosition) {
@@ -32,14 +51,11 @@ impl App {
             .map(|m| m.display_label());
 
         self.state.record_shift(gear, label);
-        let _ = self.state.save();
+        if let Err(e) = self.state.save() {
+            eprintln!("Failed to save state: {e}");
+        }
 
-        // Trigger realshifter-action CLI
-        let action_bin = std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|d| d.join("realshifter-action")))
-            .unwrap_or_else(|| "realshifter-action".into());
-
+        let action_bin = realshifter_core::action_binary_path();
         let _ = Command::new(action_bin)
             .arg("shift")
             .arg(gear.display_name())
@@ -50,7 +66,9 @@ impl App {
 
     pub fn cycle_profile(&mut self) {
         let new_profile = self.config.cycle_profile();
-        let _ = self.config.save();
+        if let Err(e) = self.config.save() {
+            eprintln!("Failed to save config: {e}");
+        }
         self.status_message = format!("Profile changed to {}", new_profile.display_name());
     }
 }

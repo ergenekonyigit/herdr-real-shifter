@@ -42,7 +42,8 @@ fn run_app<B: ratatui::backend::Backend>(
         terminal.draw(|f| ui::draw(f, app))?;
 
         if event::poll(Duration::from_millis(100))? {
-            if let Event::Key(key) = event::read()? {
+            #[allow(clippy::single_match)]
+            if let Ok(Event::Key(key)) = event::read() {
                 if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                     app.should_quit = true;
                 }

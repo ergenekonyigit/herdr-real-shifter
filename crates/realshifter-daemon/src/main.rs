@@ -56,12 +56,9 @@ fn main() {
     let mut last_gear = GearPosition::Neutral;
 
     loop {
-        match listen_hid_loop(&mut last_gear) {
-            Ok(()) => {}
-            Err(err) => {
-                eprintln!("USB HID Shifter connection status: {err}. Retrying in 2 seconds...");
-                thread::sleep(Duration::from_secs(2));
-            }
+        if let Err(err) = listen_hid_loop(&mut last_gear) {
+            eprintln!("USB HID Shifter connection status: {err}. Retrying in 2 seconds...");
+            thread::sleep(Duration::from_secs(2));
         }
     }
 }
@@ -103,15 +100,11 @@ fn listen_hid_loop(last_gear: &mut GearPosition) -> Result<(), Box<dyn std::erro
 }
 
 fn parse_shifter_hid_report(report: &[u8]) -> GearPosition {
-    // Logitech Driving Force Shifter HID button report parsing
-    // Button bits for 0..6 map to Gear 1..6 and Reverse
     for btn in 0..7u8 {
         let byte_idx = (btn / 8) as usize;
         let bit_idx = btn % 8;
-        if byte_idx < report.len() {
-            if (report[byte_idx] & (1 << bit_idx)) != 0 {
-                return GearPosition::from_hid_button(btn);
-            }
+        if byte_idx < report.len() && (report[byte_idx] & (1 << bit_idx)) != 0 {
+            return GearPosition::from_hid_button(btn);
         }
     }
     GearPosition::Neutral
@@ -126,25 +119,19 @@ fn handle_gear_shift(new_gear: GearPosition) {
         .map(|m| m.display_label());
 
     state.record_shift(new_gear, label);
-    let _ = state.save();
+    if let Err(e) = state.save() {
+        eprintln!("Failed to save state: {e}");
+    }
 
-    if new_gear.is_driving() {
-        if let Some(mapping) = config.active_mapping(new_gear) {
-            if mapping.is_enabled {
-                trigger_action(new_gear);
-            }
-        }
+    if new_gear.is_driving() && config.active_mapping(new_gear).is_some_and(|m| m.is_enabled) {
+        trigger_action(new_gear);
     }
 }
 
 fn trigger_action(gear: GearPosition) {
-    let action_bin = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.join("realshifter-action")))
-        .unwrap_or_else(|| "realshifter-action".into());
+    let action_bin = realshifter_core::action_binary_path();
 
-    let _ = Command::new(action_bin)
-        .arg("shift")
-        .arg(gear.display_name())
-        .spawn();
+    if let Err(e) = Command::new(action_bin).arg("shift").arg(gear.display_name()).spawn() {
+        eprintln!("Failed to spawn action process: {e}");
+    }
 }

@@ -41,11 +41,10 @@ impl Config {
 
     pub fn load() -> Self {
         let path = Self::config_path();
-        if path.exists() {
-            if let Ok(contents) = fs::read_to_string(&path) {
-                if let Ok(cfg) = serde_json::from_str::<Config>(&contents) {
-                    return cfg;
-                }
+        if let Ok(contents) = fs::read_to_string(&path) {
+            match serde_json::from_str::<Config>(&contents) {
+                Ok(cfg) => return cfg,
+                Err(_) => eprintln!("Warning: Failed to parse config.json, using defaults."),
             }
         }
         Self::default()

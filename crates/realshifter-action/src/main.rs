@@ -60,7 +60,9 @@ fn handle_shift(gear_str: &str) {
 
     if !target_gear.is_driving() {
         state.record_shift(target_gear, None);
-        let _ = state.save();
+        if let Err(e) = state.save() {
+            eprintln!("Failed to save state: {e}");
+        }
         println!("Shifted to {}", target_gear.full_name());
         return;
     }
@@ -69,7 +71,9 @@ fn handle_shift(gear_str: &str) {
         Some(m) if m.is_enabled => m,
         _ => {
             state.record_shift(target_gear, None);
-            let _ = state.save();
+            if let Err(e) = state.save() {
+                eprintln!("Failed to save state: {e}");
+            }
             println!("Gear {} has no active/enabled mapping.", target_gear.display_name());
             return;
         }
@@ -79,7 +83,9 @@ fn handle_shift(gear_str: &str) {
     let command_str = mapping.effective_command();
 
     state.record_shift(target_gear, Some(label.clone()));
-    let _ = state.save();
+    if let Err(e) = state.save() {
+        eprintln!("Failed to save state: {e}");
+    }
 
     println!("Executing action for {}: {} -> {}", target_gear.full_name(), label, command_str);
 
@@ -91,13 +97,17 @@ fn handle_profile_action(action: ProfileAction) {
     match action {
         ProfileAction::Next => {
             let new_profile = config.cycle_profile();
-            let _ = config.save();
+            if let Err(e) = config.save() {
+                eprintln!("Failed to save config: {e}");
+            }
             println!("Switched to active profile: {}", new_profile.display_name());
         }
         ProfileAction::Set { name } => match name.parse() {
             Ok(profile) => {
                 config.active_profile = profile;
-                let _ = config.save();
+                if let Err(e) = config.save() {
+                    eprintln!("Failed to save config: {e}");
+                }
                 println!("Switched to active profile: {}", profile.display_name());
             }
             Err(e) => {
@@ -135,11 +145,13 @@ fn dispatch_action(action_type: &GearActionType, command_str: &str) {
     }
 }
 
+#[allow(clippy::collapsible_if)]
 fn resolve_target_pane() -> String {
     // 1. Check HERDR_PANE_ID env var
     if let Ok(pane_id) = std::env::var("HERDR_PANE_ID") {
-        if !pane_id.trim().is_empty() {
-            return pane_id;
+        let trimmed = pane_id.trim();
+        if !trimmed.is_empty() {
+            return trimmed.to_string();
         }
     }
 
@@ -158,7 +170,7 @@ fn resolve_target_pane() -> String {
         if output.status.success() {
             let stdout = String::from_utf8_lossy(&output.stdout);
             for line in stdout.lines() {
-                if line.contains("active") || line.contains("*") || line.contains("focused") {
+                if line.contains("active") || line.contains('*') || line.contains("focused") {
                     let parts: Vec<&str> = line.split_whitespace().collect();
                     if let Some(first) = parts.first() {
                         return first.trim_matches(':').to_string();
@@ -176,7 +188,7 @@ fn send_keys(target_pane: &str, keys: &str) {
     let herdr_bin = std::env::var("HERDR_BIN_PATH").unwrap_or_else(|_| "herdr".to_string());
 
     // Try sending keys via Herdr
-    let status = Command::new(&herdr_bin)
+    let herdr_res = Command::new(&herdr_bin)
         .arg("pane")
         .arg("send-keys")
         .arg("--pane")
@@ -184,24 +196,20 @@ fn send_keys(target_pane: &str, keys: &str) {
         .arg(keys)
         .status();
 
-    if let Ok(st) = status {
-        if st.success() {
-            return;
-        }
+    if matches!(herdr_res, Ok(st) if st.success()) {
+        return;
     }
 
     // Fallback: Try tmux send-keys
-    let tmux_status = Command::new("tmux")
+    let tmux_res = Command::new("tmux")
         .arg("send-keys")
         .arg("-t")
         .arg(target_pane)
         .arg(keys)
         .status();
 
-    if let Ok(st) = tmux_status {
-        if st.success() {
-            return;
-        }
+    if matches!(tmux_res, Ok(st) if st.success()) {
+        return;
     }
 
     println!("[Simulated Key Dispatch to pane '{target_pane}']: {}", keys.trim());

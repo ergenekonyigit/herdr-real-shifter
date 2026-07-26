@@ -3,6 +3,7 @@ pub mod config;
 pub mod gear_action_type;
 pub mod gear_mapping;
 pub mod gear_position;
+pub mod pane_driver;
 pub mod state;
 pub mod theme;
 
@@ -11,6 +12,7 @@ pub use config::Config;
 pub use gear_action_type::GearActionType;
 pub use gear_mapping::GearMapping;
 pub use gear_position::GearPosition;
+pub use pane_driver::{MockPaneDriver, PaneAutomationService, PaneDriver, SystemHerdrPaneDriver};
 pub use state::SessionState;
 pub use theme::gear_color;
 use std::path::PathBuf;
@@ -28,3 +30,4 @@ pub fn action_binary_path() -> PathBuf {
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
+

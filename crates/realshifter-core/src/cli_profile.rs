@@ -3,11 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum CliProfile {
     ClaudeCode,
     CodexCli,
     OpenCodeCli,
+    #[default]
     AgyCli,
     Custom,
 }

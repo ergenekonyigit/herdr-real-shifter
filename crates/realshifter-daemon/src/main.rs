@@ -1,6 +1,6 @@
 use clap::Parser;
 use hidapi::{HidApi, HidDevice};
-use realshifter_core::{Config, GearPosition, SessionState};
+use realshifter_core::{GearPosition, SessionState};
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
@@ -111,19 +111,14 @@ fn parse_shifter_hid_report(report: &[u8]) -> GearPosition {
 }
 
 fn handle_gear_shift(new_gear: GearPosition) {
-    let config = Config::load();
     let mut state = SessionState::load();
 
-    let label = config
-        .active_mapping(new_gear)
-        .map(|m| m.display_label());
-
-    state.record_shift(new_gear, label);
+    state.record_shift(new_gear, None);
     if let Err(e) = state.save() {
         eprintln!("Failed to save state: {e}");
     }
 
-    if new_gear.is_driving() && config.active_mapping(new_gear).is_some_and(|m| m.is_enabled) {
+    if new_gear.is_driving() || new_gear == GearPosition::Reverse {
         trigger_action(new_gear);
     }
 }

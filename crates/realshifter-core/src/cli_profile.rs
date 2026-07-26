@@ -33,6 +33,16 @@ impl CliProfile {
         }
     }
 
+    pub fn file_name(&self) -> &'static str {
+        match self {
+            CliProfile::ClaudeCode => "claude.json",
+            CliProfile::CodexCli => "codex.json",
+            CliProfile::OpenCodeCli => "opencode.json",
+            CliProfile::AgyCli => "agy.json",
+            CliProfile::Custom => "custom.json",
+        }
+    }
+
     pub fn all() -> &'static [CliProfile] {
         &[
             CliProfile::ClaudeCode,

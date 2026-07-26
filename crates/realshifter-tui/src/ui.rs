@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, Cell, Paragraph, Row, Table, Tabs},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Tabs},
     Frame,
 };
 use realshifter_core::{gear_color, CliProfile, GearPosition};
@@ -24,6 +24,10 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_profile_bar(f, app, chunks[1]);
     draw_gear_grid(f, app, chunks[2]);
     draw_status_bar(f, app, chunks[3]);
+
+    if app.show_models_modal {
+        draw_models_modal(f, app);
+    }
 }
 
 fn draw_header(f: &mut Frame, app: &App, area: Rect) {
@@ -38,9 +42,9 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
             "v0.1.0 ",
             Style::default().fg(Color::DarkGray),
         ),
-        Span::raw(" | Herdr Plugin | Active Profile: "),
+        Span::raw(" | Herdr Plugin | Mode: "),
         Span::styled(
-            format!("{} {}", app.config.active_profile.icon_symbol(), app.config.active_profile.display_name()),
+            "⚡ Auto-Detect (Pane-based)",
             Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
         ),
         Span::raw(" | Current Gear: "),
@@ -73,14 +77,14 @@ fn draw_profile_bar(f: &mut Frame, app: &App, area: Rect) {
 
     let selected_index = profiles
         .iter()
-        .position(|p| *p == app.config.active_profile)
+        .position(|p| *p == app.view_profile)
         .unwrap_or(0);
 
     let tabs = Tabs::new(titles)
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title(" CLI Profile Preset [Press 'p' to cycle] "),
+                .title(" Profile View [Press 'p' to switch tab] "),
         )
         .highlight_style(
             Style::default()
@@ -98,7 +102,7 @@ fn draw_gear_grid(f: &mut Frame, app: &App, area: Rect) {
         .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
     let header = Row::new(header_cells).height(1).bottom_margin(1);
 
-    let active_profile = app.config.active_profile;
+    let active_profile = app.view_profile;
 
     let rows = GearPosition::all().iter().map(|gear| {
         let is_current = *gear == app.state.current_gear;
@@ -187,7 +191,7 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
         ]),
         Line::from(vec![
             Span::styled("Controls: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-            Span::raw("[1-6]: Shift Gear 1-6  |  [r]: Reverse  |  [n]: Neutral  |  [p]: Cycle Profile  |  [q/Esc]: Exit"),
+            Span::raw("[1-6]: Shift 1-6 | [r]: Reverse | [n]: Neutral | [p]: Cycle Profile | [m]: Check Models | [q/Esc]: Exit"),
         ]),
     ];
 
@@ -198,4 +202,64 @@ fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
     );
 
     f.render_widget(paragraph, area);
+}
+
+fn draw_models_modal(f: &mut Frame, app: &App) {
+    let area = f.area();
+    let modal_width = 75;
+    let modal_height = 16;
+
+    let popup_area = Rect {
+        x: area.width.saturating_sub(modal_width) / 2,
+        y: area.height.saturating_sub(modal_height) / 2,
+        width: modal_width.min(area.width),
+        height: modal_height.min(area.height),
+    };
+
+    f.render_widget(Clear, popup_area);
+
+    let empty_vec = Vec::new();
+    let (_meta_desc, meta_date, models) = if let Some(meta) = app.config.profiles.get(&CliProfile::AgyCli).and_then(|p| p.metadata.as_ref()) {
+        (meta.description.as_str(), meta.generated_at.as_str(), &meta.available_models)
+    } else {
+        ("Snapshot", "Unknown", &empty_vec)
+    };
+
+    let header_cells = ["Model ID", "Model Name", "Supported Effort Levels"]
+        .iter()
+        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
+    let header = Row::new(header_cells).height(1).bottom_margin(1);
+
+    let rows = models.iter().map(|m| {
+        let id_cell = Cell::from(m.id.as_str()).style(Style::default().fg(Color::Green));
+        let name_cell = Cell::from(m.name.as_str()).style(Style::default().fg(Color::White));
+        let effort_str = if m.effort_levels.is_empty() {
+            "N/A".to_string()
+        } else {
+            m.effort_levels.join(", ")
+        };
+        let effort_cell = Cell::from(effort_str).style(Style::default().fg(Color::Cyan));
+
+        Row::new(vec![id_cell, name_cell, effort_cell])
+    });
+
+    let title_str = format!(" Supported Models Snapshot ({}) ", meta_date);
+
+    let table = Table::new(
+        rows,
+        [
+            Constraint::Length(25),
+            Constraint::Length(28),
+            Constraint::Min(16),
+        ],
+    )
+    .header(header)
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::Yellow))
+            .title(title_str),
+    );
+
+    f.render_widget(table, popup_area);
 }

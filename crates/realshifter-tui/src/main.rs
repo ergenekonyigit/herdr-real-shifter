@@ -49,7 +49,14 @@ fn run_app(
                 }
 
                 match key.code {
-                    KeyCode::Char('q') | KeyCode::Esc => app.should_quit = true,
+                    KeyCode::Char('q') => app.should_quit = true,
+                    KeyCode::Esc => {
+                        if app.show_models_modal {
+                            app.show_models_modal = false;
+                        } else {
+                            app.should_quit = true;
+                        }
+                    }
                     KeyCode::Char('1') => app.shift_gear(GearPosition::Gear1),
                     KeyCode::Char('2') => app.shift_gear(GearPosition::Gear2),
                     KeyCode::Char('3') => app.shift_gear(GearPosition::Gear3),
@@ -58,7 +65,8 @@ fn run_app(
                     KeyCode::Char('6') => app.shift_gear(GearPosition::Gear6),
                     KeyCode::Char('r') | KeyCode::Char('R') => app.shift_gear(GearPosition::Reverse),
                     KeyCode::Char('n') | KeyCode::Char('N') => app.shift_gear(GearPosition::Neutral),
-                    KeyCode::Char('p') | KeyCode::Char('P') => app.cycle_profile(),
+                    KeyCode::Char('p') | KeyCode::Char('P') => app.cycle_view_profile(),
+                    KeyCode::Char('m') | KeyCode::Char('M') => app.toggle_models_modal(),
                     _ => {}
                 }
             }

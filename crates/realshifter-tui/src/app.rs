@@ -1,4 +1,4 @@
-use realshifter_core::{Config, GearPosition, SessionState};
+use realshifter_core::{CliProfile, Config, GearPosition, SessionState};
 use std::fs;
 use std::process::Command;
 use std::time::SystemTime;
@@ -7,6 +7,8 @@ pub struct App {
     pub config: Config,
     pub state: SessionState,
     pub should_quit: bool,
+    pub show_models_modal: bool,
+    pub view_profile: CliProfile,
     pub status_message: String,
     last_state_mtime: Option<SystemTime>,
     last_config_mtime: Option<SystemTime>,
@@ -18,6 +20,8 @@ impl App {
             config: Config::default(),
             state: SessionState::default(),
             should_quit: false,
+            show_models_modal: false,
+            view_profile: CliProfile::AgyCli,
             status_message: "Ready".to_string(),
             last_state_mtime: None,
             last_config_mtime: None,
@@ -47,7 +51,7 @@ impl App {
 
         let label = self
             .config
-            .active_mapping(gear)
+            .get_mapping(self.view_profile, gear)
             .map(|m| m.display_label());
 
         self.state.record_shift(gear, label);
@@ -64,11 +68,18 @@ impl App {
         self.status_message = format!("Shifted to {}", gear.full_name());
     }
 
-    pub fn cycle_profile(&mut self) {
-        let new_profile = self.config.cycle_profile();
-        if let Err(e) = self.config.save() {
-            eprintln!("Failed to save config: {e}");
-        }
-        self.status_message = format!("Profile changed to {}", new_profile.display_name());
+    pub fn cycle_view_profile(&mut self) {
+        let profiles = CliProfile::all();
+        let current_idx = profiles
+            .iter()
+            .position(|p| *p == self.view_profile)
+            .unwrap_or(0);
+        let next_idx = (current_idx + 1) % profiles.len();
+        self.view_profile = profiles[next_idx];
+        self.status_message = format!("Viewing profile {}", self.view_profile.display_name());
+    }
+
+    pub fn toggle_models_modal(&mut self) {
+        self.show_models_modal = !self.show_models_modal;
     }
 }

@@ -8,4 +8,4 @@ realshifter-core = { path = "../realshifter-core" }
 clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-hidapi = "2.6"
+hidapi.workspace = true

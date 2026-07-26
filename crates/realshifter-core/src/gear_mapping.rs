@@ -40,9 +40,13 @@ impl GearMapping {
 
     pub fn effective_command(&self) -> String {
         match self.action_type {
-            GearActionType::ClaudeCode => {
+            GearActionType::ClaudeCode | GearActionType::AgyCli => {
                 let base_cmd = if self.command.trim().is_empty() {
-                    "claude"
+                    if self.action_type == GearActionType::ClaudeCode {
+                        "claude"
+                    } else {
+                        "agy"
+                    }
                 } else {
                     self.command.trim()
                 };
@@ -84,6 +88,16 @@ mod tests {
             true,
         );
         assert_eq!(mapping.effective_command(), "claude --model sonnet");
+
+        let agy_mapping = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "agy",
+            Some("gemini-3.6-flash"),
+            "Gemini 3.6 Flash",
+            true,
+        );
+        assert_eq!(agy_mapping.effective_command(), "agy --model gemini-3.6-flash");
 
         let custom_cmd = GearMapping::new(
             GearPosition::Gear5,

@@ -7,6 +7,7 @@ pub enum GearActionType {
     ClaudeCode,
     CodexCli,
     OpenCodeCli,
+    AgyCli,
     CustomCommand,
     CustomHotkey,
     Rollback,
@@ -18,6 +19,7 @@ impl GearActionType {
             GearActionType::ClaudeCode => "Claude Code",
             GearActionType::CodexCli => "Codex CLI",
             GearActionType::OpenCodeCli => "OpenCode CLI",
+            GearActionType::AgyCli => "Antigravity CLI",
             GearActionType::CustomCommand => "Custom Command",
             GearActionType::CustomHotkey => "Custom Hotkey",
             GearActionType::Rollback => "Rollback / Undo",
@@ -29,6 +31,7 @@ impl GearActionType {
             GearActionType::ClaudeCode => "🧠",
             GearActionType::CodexCli => "💻",
             GearActionType::OpenCodeCli => "⚡",
+            GearActionType::AgyCli => "🛸",
             GearActionType::CustomCommand => "🛠️",
             GearActionType::CustomHotkey => "⌨️",
             GearActionType::Rollback => "↺",
@@ -40,6 +43,7 @@ impl GearActionType {
             GearActionType::ClaudeCode => "claude --model sonnet",
             GearActionType::CodexCli => "codex",
             GearActionType::OpenCodeCli => "opencode",
+            GearActionType::AgyCli => "agy --model gemini-3.6-flash",
             GearActionType::CustomCommand => "echo 'Custom command'",
             GearActionType::CustomHotkey => "",
             GearActionType::Rollback => "/undo",
@@ -61,6 +65,7 @@ impl FromStr for GearActionType {
             "claudecode" | "claude code" | "claude" => Ok(GearActionType::ClaudeCode),
             "codexcli" | "codex cli" | "codex" => Ok(GearActionType::CodexCli),
             "opencodecli" | "opencode cli" | "opencode" => Ok(GearActionType::OpenCodeCli),
+            "agycli" | "agy cli" | "agy" | "antigravity" | "antigravity cli" => Ok(GearActionType::AgyCli),
             "customcommand" | "custom command" | "custom_command" => Ok(GearActionType::CustomCommand),
             "customhotkey" | "custom hotkey" | "custom_hotkey" => Ok(GearActionType::CustomHotkey),
             "rollback" | "rollback / undo" | "undo" => Ok(GearActionType::Rollback),
@@ -79,6 +84,7 @@ mod tests {
         assert_eq!("claude".parse::<GearActionType>().unwrap(), GearActionType::ClaudeCode);
         assert_eq!("codex".parse::<GearActionType>().unwrap(), GearActionType::CodexCli);
         assert_eq!("opencode".parse::<GearActionType>().unwrap(), GearActionType::OpenCodeCli);
+        assert_eq!("agy".parse::<GearActionType>().unwrap(), GearActionType::AgyCli);
         assert_eq!("undo".parse::<GearActionType>().unwrap(), GearActionType::Rollback);
     }
 }

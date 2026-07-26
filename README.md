@@ -20,6 +20,26 @@
 
 ---
 
+## 📊 CLI Feature Compatibility Matrix
+
+RealShifter aims for full multi-CLI parity across all supported AI coding assistants. Below is the current feature matrix status:
+
+| Feature / Capability | Description | AGY (Antigravity) | Claude Code | Codex CLI | OpenCode CLI |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **USB HID Hardware Shifting** | Hardware H-pattern gear shift detection (Logitech DFS) | ✅ | ✅ | ✅ | ✅ |
+| **Active Pane Auto-Detection** | Auto-detect active CLI from terminal title / agent process | ✅ | ✅ | ✅ | ✅ |
+| **Profile JSON Persistence** | Config file storage in `~/.config/realshifter/profiles/*.json` | ✅ | ✅ | ✅ | ✅ |
+| **Dynamic Gear Mapping (1–6, R)** | Mapping physical gears 1–6 and Reverse to custom actions | ✅ | ✅ | ✅ | ✅ |
+| **Interactive Model Picker (`/model`)** | Driving interactive UI modal & keyboard macro navigation | ✅ | 🚧 | 🚧 | 🚧 |
+| **Reasoning Effort Tiers** | Granular effort level adjustment (`low`, `medium`, `high`) | ✅ | ⏳ | ⏳ | ⏳ |
+| **Action Interruption / Rollback** | Interrupting active execution (`Ctrl+C`) and triggering `/undo` | ✅ | 🚧 | 🚧 | 🚧 |
+| **Agent / CLI Skill Sync** | Automated model discovery skill & profile synchronization | ✅ | ⏳ | ⏳ | ⏳ |
+| **Custom Shell Command Execution** | Direct fallback execution of custom CLI flags & bash scripts | ✅ | ✅ | ✅ | ✅ |
+
+*Legend: ✅ Supported / Verified | 🚧 In Development | ⏳ Planned*
+
+---
+
 ## 🏗️ Architecture & Workspace Structure
 
 RealShifter is built as a high-performance, safe Rust workspace containing modular crates:

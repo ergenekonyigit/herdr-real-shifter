@@ -1,9 +1,65 @@
+#![allow(clippy::collapsible_if)]
+
 use crate::{CliProfile, GearActionType};
 use serde_json::Value;
 use std::process::Command;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReasoningEffort {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AgyModelTarget {
+    pub target_index: usize,
+    pub effort: Option<ReasoningEffort>,
+}
+
+impl AgyModelTarget {
+    pub fn parse(spec: &str) -> Self {
+        let s = spec.trim().to_lowercase();
+        let s = s.strip_prefix("/model").unwrap_or(&s).trim();
+
+        match s {
+            s if s.contains("3.6") && s.contains("low") => Self { target_index: 0, effort: Some(ReasoningEffort::Low) },
+            s if s.contains("3.6") && s.contains("medium") => Self { target_index: 0, effort: Some(ReasoningEffort::Medium) },
+            s if s.contains("3.6") => Self { target_index: 0, effort: Some(ReasoningEffort::High) },
+            s if s.contains("3.5") && s.contains("low") => Self { target_index: 1, effort: Some(ReasoningEffort::Low) },
+            s if s.contains("3.5") && s.contains("medium") => Self { target_index: 1, effort: Some(ReasoningEffort::Medium) },
+            s if s.contains("3.5") => Self { target_index: 1, effort: Some(ReasoningEffort::High) },
+            s if s.contains("3.1") && s.contains("low") => Self { target_index: 2, effort: Some(ReasoningEffort::Low) },
+            s if s.contains("3.1") => Self { target_index: 2, effort: Some(ReasoningEffort::High) },
+            s if s.contains("sonnet") => Self { target_index: 3, effort: None },
+            s if s.contains("opus") => Self { target_index: 4, effort: None },
+            s if s.contains("gpt-oss") || s.contains("120b") => Self { target_index: 5, effort: Some(ReasoningEffort::Medium) },
+            _ => Self { target_index: 0, effort: None },
+        }
+    }
+
+    pub fn index_from_text(text: &str) -> usize {
+        let t = text.to_lowercase();
+        if t.contains("3.6") { 0 }
+        else if t.contains("3.5") { 1 }
+        else if t.contains("3.1") { 2 }
+        else if t.contains("sonnet") { 3 }
+        else if t.contains("opus") { 4 }
+        else if t.contains("120b") || t.contains("gpt-oss") { 5 }
+        else { 0 }
+    }
+
+    pub fn calculate_down_steps(from_index: usize, to_index: usize, total_items: usize) -> usize {
+        if to_index >= from_index {
+            to_index - from_index
+        } else {
+            total_items - from_index + to_index
+        }
+    }
+}
 
 pub trait PaneDriver {
     fn resolve_target_pane(&self) -> String;
@@ -21,10 +77,23 @@ impl SystemHerdrPaneDriver {
     fn herdr_bin() -> String {
         std::env::var("HERDR_BIN_PATH").unwrap_or_else(|_| "herdr".to_string())
     }
+
+    fn fetch_pane_list(&self) -> Vec<Value> {
+        let herdr_bin = Self::herdr_bin();
+        let output = match Command::new(&herdr_bin).arg("pane").arg("list").output() {
+            Ok(out) if out.status.success() => out,
+            _ => return Vec::new(),
+        };
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        serde_json::from_str::<Value>(&stdout)
+            .ok()
+            .and_then(|val| val.get("result")?.get("panes")?.as_array().cloned())
+            .unwrap_or_default()
+    }
 }
 
 impl PaneDriver for SystemHerdrPaneDriver {
-    #[allow(clippy::collapsible_if)]
     fn resolve_target_pane(&self) -> String {
         if let Ok(pane_id) = std::env::var("HERDR_PANE_ID") {
             let trimmed = pane_id.trim();
@@ -41,84 +110,47 @@ impl PaneDriver for SystemHerdrPaneDriver {
             }
         }
 
-        let herdr_bin = Self::herdr_bin();
-        if let Ok(output) = Command::new(&herdr_bin).arg("pane").arg("list").output() {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                if let Ok(val) = serde_json::from_str::<Value>(&stdout) {
-                    if let Some(panes) = val.get("result").and_then(|r| r.get("panes")).and_then(|p| p.as_array()) {
-                        for pane in panes {
-                            if pane.get("focused").and_then(|f| f.as_bool()).unwrap_or(false) {
-                                if let Some(id) = pane.get("pane_id").and_then(|id| id.as_str()) {
-                                    return id.to_string();
-                                }
-                            }
-                        }
-                        if let Some(first_pane) = panes.first() {
-                            if let Some(id) = first_pane.get("pane_id").and_then(|id| id.as_str()) {
-                                return id.to_string();
-                            }
-                        }
-                    }
+        let panes = self.fetch_pane_list();
+        for pane in &panes {
+            if pane.get("focused").and_then(|f| f.as_bool()).unwrap_or(false) {
+                if let Some(id) = pane.get("pane_id").and_then(|id| id.as_str()) {
+                    return id.to_string();
                 }
+            }
+        }
+
+        if let Some(first_pane) = panes.first() {
+            if let Some(id) = first_pane.get("pane_id").and_then(|id| id.as_str()) {
+                return id.to_string();
             }
         }
 
         "active".to_string()
     }
 
-    #[allow(clippy::collapsible_if)]
     fn detect_active_profile(&self, target_pane: &str) -> CliProfile {
-        let herdr_bin = Self::herdr_bin();
+        let panes = self.fetch_pane_list();
+        for pane in &panes {
+            let id = pane.get("pane_id").and_then(|i| i.as_str()).unwrap_or("");
+            let is_focused = pane.get("focused").and_then(|f| f.as_bool()).unwrap_or(false);
 
-        if let Ok(output) = Command::new(&herdr_bin).arg("pane").arg("list").output() {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                if let Ok(val) = serde_json::from_str::<Value>(&stdout) {
-                    if let Some(panes) = val.get("result").and_then(|r| r.get("panes")).and_then(|p| p.as_array()) {
-                        for pane in panes {
-                            let id = pane.get("pane_id").and_then(|i| i.as_str()).unwrap_or("");
-                            let is_focused = pane.get("focused").and_then(|f| f.as_bool()).unwrap_or(false);
-
-                            if id == target_pane || (target_pane == "active" && is_focused) {
-                                if let Some(agent) = pane.get("agent").and_then(|a| a.as_str()) {
-                                    match agent.to_lowercase().as_str() {
-                                        "agy" | "antigravity" => return CliProfile::AgyCli,
-                                        "claude" | "claude-code" => return CliProfile::ClaudeCode,
-                                        "codex" => return CliProfile::CodexCli,
-                                        "opencode" => return CliProfile::OpenCodeCli,
-                                        _ => {}
-                                    }
-                                }
-                                if let Some(title) = pane.get("terminal_title").and_then(|t| t.as_str()) {
-                                    let t_low = title.to_lowercase();
-                                    if t_low.contains("agy") { return CliProfile::AgyCli; }
-                                    if t_low.contains("claude") { return CliProfile::ClaudeCode; }
-                                    if t_low.contains("codex") { return CliProfile::CodexCli; }
-                                    if t_low.contains("opencode") { return CliProfile::OpenCodeCli; }
-                                }
-                            }
-                        }
+            if id == target_pane || (target_pane == "active" && is_focused) {
+                if let Some(agent) = pane.get("agent").and_then(|a| a.as_str()) {
+                    if let Some(profile) = CliProfile::from_keyword(agent) {
+                        return profile;
+                    }
+                }
+                if let Some(title) = pane.get("terminal_title").and_then(|t| t.as_str()) {
+                    if let Some(profile) = CliProfile::from_keyword(title) {
+                        return profile;
                     }
                 }
             }
         }
 
-        if let Ok(output) = Command::new(&herdr_bin).arg("pane").arg("read").arg(target_pane).output() {
-            if output.status.success() {
-                let stdout = String::from_utf8_lossy(&output.stdout).to_lowercase();
-                if stdout.contains("antigravity") || stdout.contains("gemini") {
-                    return CliProfile::AgyCli;
-                }
-                if stdout.contains("claude") {
-                    return CliProfile::ClaudeCode;
-                }
-                if stdout.contains("codex") {
-                    return CliProfile::CodexCli;
-                }
-                if stdout.contains("opencode") {
-                    return CliProfile::OpenCodeCli;
-                }
+        if let Ok(output) = self.read_pane_output(target_pane) {
+            if let Some(profile) = CliProfile::from_keyword(&output) {
+                return profile;
             }
         }
 
@@ -258,23 +290,7 @@ impl<D: PaneDriver> PaneAutomationService<D> {
     }
 
     pub fn select_agy_model(&self, target_pane: &str, model_spec: &str) {
-        let spec = model_spec.trim().to_lowercase();
-        let spec = spec.strip_prefix("/model").unwrap_or(&spec).trim();
-
-        let (target_index, effort_opt) = match spec {
-            s if s.contains("3.6") && s.contains("low") => (0, Some("low")),
-            s if s.contains("3.6") && s.contains("medium") => (0, Some("medium")),
-            s if s.contains("3.6") => (0, Some("high")),
-            s if s.contains("3.5") && s.contains("low") => (1, Some("low")),
-            s if s.contains("3.5") && s.contains("medium") => (1, Some("medium")),
-            s if s.contains("3.5") => (1, Some("high")),
-            s if s.contains("3.1") && s.contains("low") => (2, Some("low")),
-            s if s.contains("3.1") => (2, Some("high")),
-            s if s.contains("sonnet") => (3, None),
-            s if s.contains("opus") => (4, None),
-            s if s.contains("gpt-oss") || s.contains("120b") => (5, Some("medium")),
-            _ => (0, None),
-        };
+        let target = AgyModelTarget::parse(model_spec);
 
         // Fallback: settings.json
         let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
@@ -288,26 +304,13 @@ impl<D: PaneDriver> PaneAutomationService<D> {
             .unwrap_or_default();
 
         let pane_output = self.driver.read_pane_output(target_pane).unwrap_or_default();
-
         let last_line = pane_output
             .lines()
             .rfind(|l| !l.trim().is_empty())
-            .unwrap_or(&settings_model)
-            .to_lowercase();
+            .unwrap_or(&settings_model);
 
-        let current_index = if last_line.contains("3.6") { 0 }
-        else if last_line.contains("3.5") { 1 }
-        else if last_line.contains("3.1") { 2 }
-        else if last_line.contains("sonnet") { 3 }
-        else if last_line.contains("opus") { 4 }
-        else if last_line.contains("120b") || last_line.contains("gpt-oss") { 5 }
-        else { 0 };
-
-        let down_count = if target_index >= current_index {
-            target_index - current_index
-        } else {
-            6 - current_index + target_index
-        };
+        let current_index = AgyModelTarget::index_from_text(last_line);
+        let down_count = AgyModelTarget::calculate_down_steps(current_index, target.target_index, 6);
 
         // 1. Open /model modal
         let _ = self.driver.send_text(target_pane, "/model");
@@ -321,25 +324,24 @@ impl<D: PaneDriver> PaneAutomationService<D> {
         }
 
         // 3. Adjust effort slider if applicable
-        if let Some(effort) = effort_opt {
+        if let Some(effort) = target.effort {
             match effort {
-                "low" => {
+                ReasoningEffort::Low => {
                     for _ in 0..3 {
                         let _ = self.driver.send_keys(target_pane, &["Left"]);
                     }
                 }
-                "medium" => {
+                ReasoningEffort::Medium => {
                     for _ in 0..3 {
                         let _ = self.driver.send_keys(target_pane, &["Left"]);
                     }
                     let _ = self.driver.send_keys(target_pane, &["Right"]);
                 }
-                "high" => {
+                ReasoningEffort::High => {
                     for _ in 0..3 {
                         let _ = self.driver.send_keys(target_pane, &["Right"]);
                     }
                 }
-                _ => {}
             }
         }
 
@@ -408,6 +410,16 @@ impl PaneDriver for MockPaneDriver {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_agy_model_target_parse() {
+        let target = AgyModelTarget::parse("gemini-3.5-flash-low");
+        assert_eq!(target.target_index, 1);
+        assert_eq!(target.effort, Some(ReasoningEffort::Low));
+
+        let down_steps = AgyModelTarget::calculate_down_steps(0, 1, 6);
+        assert_eq!(down_steps, 1);
+    }
 
     #[test]
     fn test_mock_driver_agy_model_select() {

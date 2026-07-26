@@ -127,10 +127,7 @@ impl Config {
     pub fn load() -> Self {
         let path = Self::config_path();
         let mut cfg = if let Ok(contents) = fs::read_to_string(&path) {
-            match serde_json::from_str::<Config>(&contents) {
-                Ok(c) => c,
-                Err(_) => Config::default(),
-            }
+            serde_json::from_str::<Config>(&contents).unwrap_or_default()
         } else {
             Config::default()
         };

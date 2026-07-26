@@ -54,6 +54,21 @@ impl CliProfile {
         ]
     }
 
+    pub fn from_keyword(text: &str) -> Option<Self> {
+        let t_low = text.to_lowercase();
+        if t_low.contains("agy") || t_low.contains("antigravity") || t_low.contains("gemini") {
+            Some(CliProfile::AgyCli)
+        } else if t_low.contains("claude") {
+            Some(CliProfile::ClaudeCode)
+        } else if t_low.contains("codex") {
+            Some(CliProfile::CodexCli)
+        } else if t_low.contains("opencode") {
+            Some(CliProfile::OpenCodeCli)
+        } else {
+            None
+        }
+    }
+
     pub fn default_mappings(&self) -> Vec<GearMapping> {
         match self {
             CliProfile::ClaudeCode => vec![

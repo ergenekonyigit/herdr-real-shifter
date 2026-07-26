@@ -42,6 +42,12 @@ fn main() {
     }
 }
 
+fn resolve_active_context(service: &PaneAutomationService) -> (String, realshifter_core::CliProfile) {
+    let pane = service.resolve_target_pane();
+    let profile = service.detect_active_profile(&pane);
+    (pane, profile)
+}
+
 fn handle_shift(gear_str: &str) {
     let target_gear: GearPosition = match gear_str.parse() {
         Ok(g) => g,
@@ -54,8 +60,7 @@ fn handle_shift(gear_str: &str) {
     let config = Config::load();
     let mut state = SessionState::load();
     let service = PaneAutomationService::default();
-    let target_pane = service.resolve_target_pane();
-    let active_profile = service.detect_active_profile(&target_pane);
+    let (target_pane, active_profile) = resolve_active_context(&service);
 
     let mapping = match config.get_mapping(active_profile, target_gear) {
         Some(m) if m.is_enabled => m,
@@ -84,8 +89,7 @@ fn handle_shift(gear_str: &str) {
 
 fn handle_profile_action(_action: ProfileAction) {
     let service = PaneAutomationService::default();
-    let target_pane = service.resolve_target_pane();
-    let detected = service.detect_active_profile(&target_pane);
+    let (target_pane, detected) = resolve_active_context(&service);
     println!("Auto-detected active profile for pane '{}': {}", target_pane, detected.display_name());
 }
 

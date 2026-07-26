@@ -189,6 +189,19 @@ impl Config {
             profile.default_mappings().into_iter().find(|m| m.gear == gear)
         }
     }
+
+    pub fn update_mapping(&mut self, profile: CliProfile, new_mapping: GearMapping) {
+        let p_cfg = self
+            .profiles
+            .entry(profile)
+            .or_insert_with(|| ProfileConfig::default_for(profile));
+
+        if let Some(existing) = p_cfg.mappings.iter_mut().find(|m| m.gear == new_mapping.gear) {
+            *existing = new_mapping;
+        } else {
+            p_cfg.mappings.push(new_mapping);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -226,5 +239,22 @@ mod tests {
         assert_eq!(agy_meta.available_models[0].id, "gemini-3.6-flash");
 
         let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_config_update_mapping() {
+        let mut cfg = Config::default();
+        let new_m = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "",
+            Some("gemini-3.6-flash-high"),
+            "Gemini 3.6 Flash High",
+            true,
+        );
+        cfg.update_mapping(CliProfile::AgyCli, new_m.clone());
+        let fetched = cfg.get_mapping(CliProfile::AgyCli, GearPosition::Gear1).unwrap();
+        assert_eq!(fetched.label, "Gemini 3.6 Flash High");
+        assert_eq!(fetched.model_flag.as_deref(), Some("gemini-3.6-flash-high"));
     }
 }

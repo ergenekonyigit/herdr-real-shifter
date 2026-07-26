@@ -1,3 +1,4 @@
+use crate::CliProfile;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
@@ -47,6 +48,28 @@ impl GearActionType {
             GearActionType::CustomCommand => "echo 'Custom command'",
             GearActionType::CustomHotkey => "",
             GearActionType::Rollback => "/undo",
+        }
+    }
+
+    pub fn all() -> &'static [GearActionType] {
+        &[
+            GearActionType::AgyCli,
+            GearActionType::ClaudeCode,
+            GearActionType::CodexCli,
+            GearActionType::OpenCodeCli,
+            GearActionType::CustomCommand,
+            GearActionType::CustomHotkey,
+            GearActionType::Rollback,
+        ]
+    }
+
+    pub fn from_profile(profile: CliProfile) -> GearActionType {
+        match profile {
+            CliProfile::AgyCli => GearActionType::AgyCli,
+            CliProfile::ClaudeCode => GearActionType::ClaudeCode,
+            CliProfile::CodexCli => GearActionType::CodexCli,
+            CliProfile::OpenCodeCli => GearActionType::OpenCodeCli,
+            CliProfile::Custom => GearActionType::CustomCommand,
         }
     }
 }

@@ -41,13 +41,32 @@ impl Config {
 
     pub fn load() -> Self {
         let path = Self::config_path();
-        if let Ok(contents) = fs::read_to_string(&path) {
+        let mut cfg = if let Ok(contents) = fs::read_to_string(&path) {
             match serde_json::from_str::<Config>(&contents) {
-                Ok(cfg) => return cfg,
-                Err(_) => eprintln!("Warning: Failed to parse config.json, using defaults."),
+                Ok(c) => c,
+                Err(_) => {
+                    eprintln!("Warning: Failed to parse config.json, using defaults.");
+                    Config::default()
+                }
+            }
+        } else {
+            Config::default()
+        };
+
+        // Ensure all profiles (including newly added profiles like AgyCli) have default mappings
+        let mut modified = false;
+        for profile in CliProfile::all() {
+            if !cfg.profile_mappings.contains_key(profile) {
+                cfg.profile_mappings.insert(*profile, profile.default_mappings());
+                modified = true;
             }
         }
-        Self::default()
+
+        if modified {
+            let _ = cfg.save();
+        }
+
+        cfg
     }
 
     pub fn save(&self) -> Result<(), String> {
@@ -60,11 +79,11 @@ impl Config {
     }
 
     pub fn get_mapping(&self, profile: CliProfile, gear: GearPosition) -> Option<GearMapping> {
-        self.profile_mappings
-            .get(&profile)?
-            .iter()
-            .find(|m| m.gear == gear)
-            .cloned()
+        if let Some(vec) = self.profile_mappings.get(&profile) {
+            vec.iter().find(|m| m.gear == gear).cloned()
+        } else {
+            profile.default_mappings().into_iter().find(|m| m.gear == gear)
+        }
     }
 
     pub fn active_mapping(&self, gear: GearPosition) -> Option<GearMapping> {

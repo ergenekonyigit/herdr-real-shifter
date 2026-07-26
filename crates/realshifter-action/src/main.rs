@@ -187,11 +187,10 @@ fn resolve_target_pane() -> String {
 fn send_keys(target_pane: &str, keys: &str) {
     let herdr_bin = std::env::var("HERDR_BIN_PATH").unwrap_or_else(|_| "herdr".to_string());
 
-    // Try sending keys via Herdr
+    // Try sending keys via Herdr: herdr pane send-keys <target_pane> <keys>
     let herdr_res = Command::new(&herdr_bin)
         .arg("pane")
         .arg("send-keys")
-        .arg("--pane")
         .arg(target_pane)
         .arg(keys)
         .status();

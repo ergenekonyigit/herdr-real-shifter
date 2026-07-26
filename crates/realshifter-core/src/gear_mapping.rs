@@ -40,13 +40,26 @@ impl GearMapping {
 
     pub fn effective_command(&self) -> String {
         match self.action_type {
-            GearActionType::ClaudeCode | GearActionType::AgyCli => {
-                let base_cmd = if self.command.trim().is_empty() {
-                    if self.action_type == GearActionType::ClaudeCode {
-                        "claude"
+            GearActionType::AgyCli => {
+                let cmd_trimmed = self.command.trim();
+                if let Some(ref flag) = self.model_flag {
+                    let flag_trimmed = flag.trim();
+                    if cmd_trimmed.is_empty() || cmd_trimmed == "/model" {
+                        format!("/model {flag_trimmed}")
+                    } else if !cmd_trimmed.contains("--model") {
+                        format!("{cmd_trimmed} --model {flag_trimmed}")
                     } else {
-                        "agy"
+                        cmd_trimmed.to_string()
                     }
+                } else if !cmd_trimmed.is_empty() {
+                    cmd_trimmed.to_string()
+                } else {
+                    self.action_type.default_command().to_string()
+                }
+            }
+            GearActionType::ClaudeCode => {
+                let base_cmd = if self.command.trim().is_empty() {
+                    "claude"
                 } else {
                     self.command.trim()
                 };
@@ -89,15 +102,25 @@ mod tests {
         );
         assert_eq!(mapping.effective_command(), "claude --model sonnet");
 
-        let agy_mapping = GearMapping::new(
+        let agy_slash_mapping = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "",
+            Some("gemini-3.6-flash-low"),
+            "Gemini 3.6 Flash (Low)",
+            true,
+        );
+        assert_eq!(agy_slash_mapping.effective_command(), "/model gemini-3.6-flash-low");
+
+        let agy_cli_mapping = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
             "agy",
-            Some("gemini-3.6-flash"),
-            "Gemini 3.6 Flash",
+            Some("gemini-3.6-flash-low"),
+            "Gemini 3.6 Flash (Low)",
             true,
         );
-        assert_eq!(agy_mapping.effective_command(), "agy --model gemini-3.6-flash");
+        assert_eq!(agy_cli_mapping.effective_command(), "agy --model gemini-3.6-flash-low");
 
         let custom_cmd = GearMapping::new(
             GearPosition::Gear5,

@@ -223,7 +223,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear1,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("gemini-3.6-flash-low"),
                     "Gemini 3.6 Flash (Low)",
                     true,
@@ -231,7 +231,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear2,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("gemini-3.6-flash-medium"),
                     "Gemini 3.6 Flash (Medium)",
                     true,
@@ -239,7 +239,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear3,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("gemini-3.6-flash-high"),
                     "Gemini 3.6 Flash (High)",
                     true,
@@ -247,7 +247,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear4,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("gemini-3.1-pro-high"),
                     "Gemini 3.1 Pro (High)",
                     true,
@@ -255,7 +255,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear5,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("claude-sonnet-4-6"),
                     "Claude Sonnet 4.6 (Thinking)",
                     true,
@@ -263,7 +263,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear6,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("claude-opus-4-6-thinking"),
                     "Claude Opus 4.6 (Thinking)",
                     true,
@@ -289,7 +289,7 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear2,
                     GearActionType::AgyCli,
-                    "agy",
+                    "",
                     Some("gemini-3.6-flash-high"),
                     "AGY Flash High",
                     true,

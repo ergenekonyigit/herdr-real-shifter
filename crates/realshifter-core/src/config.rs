@@ -1,4 +1,4 @@
-use crate::{CliProfile, GearMapping, GearPosition};
+use crate::{CliProfile, GearActionType, GearMapping, GearPosition};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -53,10 +53,18 @@ impl Config {
             Config::default()
         };
 
-        // Ensure all profiles (including newly added profiles like AgyCli) have default mappings
         let mut modified = false;
         for profile in CliProfile::all() {
-            if !cfg.profile_mappings.contains_key(profile) {
+            if let Some(mappings) = cfg.profile_mappings.get_mut(profile) {
+                if *profile == CliProfile::AgyCli {
+                    for m in mappings.iter_mut() {
+                        if m.action_type == GearActionType::AgyCli && m.command.trim() == "agy" {
+                            m.command = String::new();
+                            modified = true;
+                        }
+                    }
+                }
+            } else {
                 cfg.profile_mappings.insert(*profile, profile.default_mappings());
                 modified = true;
             }

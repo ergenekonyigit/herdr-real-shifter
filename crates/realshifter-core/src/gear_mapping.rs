@@ -91,6 +91,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_display_label() {
+        let m1 = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::ClaudeCode,
+            "claude",
+            Some("sonnet"),
+            "Custom Label",
+            true,
+        );
+        assert_eq!(m1.display_label(), "Custom Label");
+
+        let m2 = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::ClaudeCode,
+            "claude",
+            Some("sonnet"),
+            "",
+            true,
+        );
+        assert_eq!(m2.display_label(), "Claude Code");
+    }
+
+    #[test]
     fn test_effective_command() {
         let mapping = GearMapping::new(
             GearPosition::Gear1,
@@ -102,6 +125,26 @@ mod tests {
         );
         assert_eq!(mapping.effective_command(), "claude --model sonnet");
 
+        let claude_with_existing_flag = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::ClaudeCode,
+            "claude --model opus",
+            Some("sonnet"),
+            "",
+            true,
+        );
+        assert_eq!(claude_with_existing_flag.effective_command(), "claude --model opus");
+
+        let claude_default = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::ClaudeCode,
+            "",
+            None::<String>,
+            "",
+            true,
+        );
+        assert_eq!(claude_default.effective_command(), "claude");
+
         let agy_slash_mapping = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
@@ -112,6 +155,16 @@ mod tests {
         );
         assert_eq!(agy_slash_mapping.effective_command(), "/model gemini-3.6-flash-low");
 
+        let agy_slash_explicit = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "/model",
+            Some("gemini-3.6-flash-low"),
+            "",
+            true,
+        );
+        assert_eq!(agy_slash_explicit.effective_command(), "/model gemini-3.6-flash-low");
+
         let agy_cli_mapping = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
@@ -121,6 +174,46 @@ mod tests {
             true,
         );
         assert_eq!(agy_cli_mapping.effective_command(), "agy --model gemini-3.6-flash-low");
+
+        let agy_cli_existing = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "agy --model gemini-3.5-flash",
+            Some("gemini-3.6-flash-low"),
+            "",
+            true,
+        );
+        assert_eq!(agy_cli_existing.effective_command(), "agy --model gemini-3.5-flash");
+
+        let agy_no_flag_with_cmd = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "agy custom",
+            None::<String>,
+            "",
+            true,
+        );
+        assert_eq!(agy_no_flag_with_cmd.effective_command(), "agy custom");
+
+        let agy_empty_default = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::AgyCli,
+            "",
+            None::<String>,
+            "",
+            true,
+        );
+        assert_eq!(agy_empty_default.effective_command(), "agy --model gemini-3.6-flash");
+
+        let custom_hotkey = GearMapping::new(
+            GearPosition::Gear1,
+            GearActionType::CustomHotkey,
+            "Ctrl+Shift+1",
+            None::<String>,
+            "",
+            true,
+        );
+        assert_eq!(custom_hotkey.effective_command(), "Ctrl+Shift+1");
 
         let custom_cmd = GearMapping::new(
             GearPosition::Gear5,

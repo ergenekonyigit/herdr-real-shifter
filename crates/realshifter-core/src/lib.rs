@@ -31,3 +31,24 @@ pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_version_and_action_binary_path() {
+        assert!(!version().is_empty());
+
+        let default_bin = action_binary_path();
+        assert!(!default_bin.to_string_lossy().is_empty());
+
+        unsafe {
+            std::env::set_var("HERDR_ACTION_BIN", "/custom/bin/action");
+        }
+        let env_bin = action_binary_path();
+        assert_eq!(env_bin, PathBuf::from("/custom/bin/action"));
+        unsafe {
+            std::env::remove_var("HERDR_ACTION_BIN");
+        }
+    }
+}

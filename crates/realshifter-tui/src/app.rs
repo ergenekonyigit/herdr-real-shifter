@@ -83,3 +83,40 @@ impl App {
         self.show_models_modal = !self.show_models_modal;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_app_lifecycle_and_methods() {
+        let temp_dir = std::env::temp_dir().join(format!("rs_tui_test_{}", std::process::id()));
+        unsafe {
+            std::env::set_var("HERDR_PLUGIN_CONFIG_DIR", &temp_dir);
+            std::env::set_var("HERDR_PLUGIN_STATE_DIR", &temp_dir);
+            std::env::set_var("HERDR_ACTION_BIN", "/usr/bin/true");
+        }
+
+        let mut app = App::new();
+        assert_eq!(app.view_profile, CliProfile::AgyCli);
+        assert!(!app.should_quit);
+        assert!(!app.show_models_modal);
+
+        app.cycle_view_profile();
+        assert_ne!(app.view_profile, CliProfile::AgyCli);
+
+        app.toggle_models_modal();
+        assert!(app.show_models_modal);
+
+        app.shift_gear(GearPosition::Gear1);
+        assert_eq!(app.state.current_gear, GearPosition::Gear1);
+        assert!(app.status_message.contains("Shifted to"));
+
+        app.refresh();
+
+        unsafe {
+            std::env::remove_var("HERDR_ACTION_BIN");
+        }
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+}

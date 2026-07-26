@@ -395,6 +395,26 @@ mod tests {
         for profile in CliProfile::all() {
             let mappings = profile.default_mappings();
             assert_eq!(mappings.len(), 7, "Each profile should have 7 driving gear mappings");
+            assert!(!profile.display_name().is_empty());
+            assert!(!profile.icon_symbol().is_empty());
+            assert!(!profile.file_name().is_empty());
+            assert!(!format!("{profile}").is_empty());
         }
+    }
+
+    #[test]
+    fn test_profile_from_keyword_and_str() {
+        assert_eq!(CliProfile::from_keyword("gemini 3.6"), Some(CliProfile::AgyCli));
+        assert_eq!(CliProfile::from_keyword("claude-code"), Some(CliProfile::ClaudeCode));
+        assert_eq!(CliProfile::from_keyword("codex"), Some(CliProfile::CodexCli));
+        assert_eq!(CliProfile::from_keyword("opencode"), Some(CliProfile::OpenCodeCli));
+        assert_eq!(CliProfile::from_keyword("unknown"), None);
+
+        assert_eq!("claude".parse::<CliProfile>().unwrap(), CliProfile::ClaudeCode);
+        assert_eq!("codex".parse::<CliProfile>().unwrap(), CliProfile::CodexCli);
+        assert_eq!("opencode".parse::<CliProfile>().unwrap(), CliProfile::OpenCodeCli);
+        assert_eq!("agy".parse::<CliProfile>().unwrap(), CliProfile::AgyCli);
+        assert_eq!("custom".parse::<CliProfile>().unwrap(), CliProfile::Custom);
+        assert!("invalid".parse::<CliProfile>().is_err());
     }
 }

@@ -90,5 +90,27 @@ mod tests {
         assert_eq!(st.total_shifts, 1);
         assert_eq!(*st.shift_counts.get(&GearPosition::Gear1).unwrap(), 1);
         assert_eq!(st.last_action.as_deref(), Some("Claude Sonnet"));
+
+        st.record_shift(GearPosition::Gear2, None);
+        assert_eq!(st.current_gear, GearPosition::Gear2);
+        assert_eq!(st.total_shifts, 2);
+    }
+
+    #[test]
+    fn test_session_state_load_save() {
+        let temp_dir = std::env::temp_dir().join(format!("rs_state_test_{}", std::process::id()));
+        unsafe {
+            std::env::set_var("HERDR_PLUGIN_STATE_DIR", &temp_dir);
+        }
+
+        let mut st = SessionState::default();
+        st.record_shift(GearPosition::Gear3, Some("Shift 3".to_string()));
+        st.save().unwrap();
+
+        let loaded = SessionState::load();
+        assert_eq!(loaded.current_gear, GearPosition::Gear3);
+        assert_eq!(loaded.total_shifts, 1);
+
+        let _ = fs::remove_dir_all(&temp_dir);
     }
 }

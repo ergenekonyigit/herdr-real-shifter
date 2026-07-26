@@ -80,11 +80,38 @@ mod tests {
 
     #[test]
     fn test_action_type_display_and_parse() {
-        assert_eq!(GearActionType::ClaudeCode.display_name(), "Claude Code");
+        let types = [
+            GearActionType::ClaudeCode,
+            GearActionType::CodexCli,
+            GearActionType::OpenCodeCli,
+            GearActionType::AgyCli,
+            GearActionType::CustomCommand,
+            GearActionType::CustomHotkey,
+            GearActionType::Rollback,
+        ];
+
+        for t in types {
+            assert!(!t.display_name().is_empty());
+            assert!(!t.icon_symbol().is_empty());
+            assert!(!format!("{t}").is_empty());
+        }
+
+        assert_eq!(GearActionType::ClaudeCode.default_command(), "claude --model sonnet");
+        assert_eq!(GearActionType::CodexCli.default_command(), "codex");
+        assert_eq!(GearActionType::OpenCodeCli.default_command(), "opencode");
+        assert_eq!(GearActionType::AgyCli.default_command(), "agy --model gemini-3.6-flash");
+        assert_eq!(GearActionType::CustomCommand.default_command(), "echo 'Custom command'");
+        assert_eq!(GearActionType::CustomHotkey.default_command(), "");
+        assert_eq!(GearActionType::Rollback.default_command(), "/undo");
+
         assert_eq!("claude".parse::<GearActionType>().unwrap(), GearActionType::ClaudeCode);
         assert_eq!("codex".parse::<GearActionType>().unwrap(), GearActionType::CodexCli);
         assert_eq!("opencode".parse::<GearActionType>().unwrap(), GearActionType::OpenCodeCli);
         assert_eq!("agy".parse::<GearActionType>().unwrap(), GearActionType::AgyCli);
+        assert_eq!("custom command".parse::<GearActionType>().unwrap(), GearActionType::CustomCommand);
+        assert_eq!("custom hotkey".parse::<GearActionType>().unwrap(), GearActionType::CustomHotkey);
         assert_eq!("undo".parse::<GearActionType>().unwrap(), GearActionType::Rollback);
+
+        assert!("invalid_type".parse::<GearActionType>().is_err());
     }
 }

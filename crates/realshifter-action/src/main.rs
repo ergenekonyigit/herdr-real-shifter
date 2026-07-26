@@ -104,7 +104,19 @@ mod tests {
     #[test]
     fn test_resolve_target_pane_default() {
         let service = PaneAutomationService::default();
-        let pane = service.resolve_target_pane();
+        let (pane, profile) = resolve_active_context(&service);
         assert!(!pane.is_empty());
+        assert_eq!(profile, realshifter_core::CliProfile::AgyCli);
+    }
+
+    #[test]
+    fn test_handle_agent_complete() {
+        handle_agent_complete();
+    }
+
+    #[test]
+    fn test_handle_profile_action() {
+        handle_profile_action(ProfileAction::Next);
+        handle_profile_action(ProfileAction::Set { name: "agy".to_string() });
     }
 }

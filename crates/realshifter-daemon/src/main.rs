@@ -130,3 +130,48 @@ fn trigger_action(gear: GearPosition) {
         eprintln!("Failed to spawn action process: {e}");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_shifter_hid_report() {
+        let empty_report = [0u8; 8];
+        assert_eq!(parse_shifter_hid_report(&empty_report), GearPosition::Neutral);
+
+        // Button 0 -> Gear 1 (bit 0 of byte 0 set)
+        let gear1_report = [0b0000_0001, 0, 0, 0];
+        assert_eq!(parse_shifter_hid_report(&gear1_report), GearPosition::Gear1);
+
+        // Button 5 -> Gear 6 (bit 5 of byte 0 set)
+        let gear6_report = [0b0010_0000, 0, 0, 0];
+        assert_eq!(parse_shifter_hid_report(&gear6_report), GearPosition::Gear6);
+
+        // Button 6 -> Reverse (bit 6 of byte 0 set)
+        let reverse_report = [0b0100_0000, 0, 0, 0];
+        assert_eq!(parse_shifter_hid_report(&reverse_report), GearPosition::Reverse);
+    }
+
+    #[test]
+    fn test_handle_gear_shift_and_trigger_action() {
+        let temp_dir = std::env::temp_dir().join(format!("rs_daemon_test_{}", std::process::id()));
+        unsafe {
+            std::env::set_var("HERDR_PLUGIN_STATE_DIR", &temp_dir);
+            std::env::set_var("HERDR_ACTION_BIN", "/usr/bin/true");
+        }
+
+        handle_gear_shift(GearPosition::Gear1);
+        let state = SessionState::load();
+        assert_eq!(state.current_gear, GearPosition::Gear1);
+
+        handle_gear_shift(GearPosition::Neutral);
+        let state_n = SessionState::load();
+        assert_eq!(state_n.current_gear, GearPosition::Neutral);
+
+        unsafe {
+            std::env::remove_var("HERDR_ACTION_BIN");
+        }
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+}

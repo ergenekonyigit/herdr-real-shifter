@@ -166,14 +166,61 @@ mod tests {
         assert_eq!("1".parse::<GearPosition>().unwrap(), GearPosition::Gear1);
         assert_eq!("r".parse::<GearPosition>().unwrap(), GearPosition::Reverse);
         assert_eq!("neutral".parse::<GearPosition>().unwrap(), GearPosition::Neutral);
+        assert_eq!("gear 3".parse::<GearPosition>().unwrap(), GearPosition::Gear3);
+        assert!("invalid".parse::<GearPosition>().is_err());
     }
 
     #[test]
     fn test_hid_button_mapping() {
         assert_eq!(GearPosition::from_hid_button(0), GearPosition::Gear1);
+        assert_eq!(GearPosition::from_hid_button(1), GearPosition::Gear2);
+        assert_eq!(GearPosition::from_hid_button(2), GearPosition::Gear3);
+        assert_eq!(GearPosition::from_hid_button(3), GearPosition::Gear4);
+        assert_eq!(GearPosition::from_hid_button(4), GearPosition::Gear5);
+        assert_eq!(GearPosition::from_hid_button(5), GearPosition::Gear6);
         assert_eq!(GearPosition::from_hid_button(6), GearPosition::Reverse);
         assert_eq!(GearPosition::from_hid_button(99), GearPosition::Neutral);
+
         assert_eq!(GearPosition::Gear1.hid_button_index(), Some(0));
+        assert_eq!(GearPosition::Gear2.hid_button_index(), Some(1));
+        assert_eq!(GearPosition::Gear3.hid_button_index(), Some(2));
+        assert_eq!(GearPosition::Gear4.hid_button_index(), Some(3));
+        assert_eq!(GearPosition::Gear5.hid_button_index(), Some(4));
+        assert_eq!(GearPosition::Gear6.hid_button_index(), Some(5));
+        assert_eq!(GearPosition::Reverse.hid_button_index(), Some(6));
         assert_eq!(GearPosition::Neutral.hid_button_index(), None);
+    }
+
+    #[test]
+    fn test_gear_position_names_emojis_and_driving() {
+        assert!(!GearPosition::Neutral.is_driving());
+        assert!(GearPosition::Gear1.is_driving());
+        assert!(GearPosition::Reverse.is_driving());
+
+        assert_eq!(GearPosition::Neutral.full_name(), "Neutral");
+        assert_eq!(GearPosition::Gear1.full_name(), "Gear 1");
+        assert_eq!(GearPosition::Gear2.full_name(), "Gear 2");
+        assert_eq!(GearPosition::Gear3.full_name(), "Gear 3");
+        assert_eq!(GearPosition::Gear4.full_name(), "Gear 4");
+        assert_eq!(GearPosition::Gear5.full_name(), "Gear 5");
+        assert_eq!(GearPosition::Gear6.full_name(), "Gear 6");
+        assert_eq!(GearPosition::Reverse.full_name(), "Reverse");
+
+        assert_eq!(GearPosition::Neutral.emoji(), "⚪");
+        assert_eq!(GearPosition::Gear1.emoji(), "1️⃣");
+        assert_eq!(GearPosition::Reverse.emoji(), "🔴");
+
+        assert_eq!(GearPosition::all_driving().len(), 7);
+        assert_eq!(GearPosition::all().len(), 8);
+
+        assert_eq!(format!("{}", GearPosition::Gear1), "1");
+    }
+
+    #[test]
+    fn test_try_from_u8() {
+        for i in 0..=7u8 {
+            assert!(GearPosition::try_from(i).is_ok());
+        }
+        assert!(GearPosition::try_from(8u8).is_err());
     }
 }

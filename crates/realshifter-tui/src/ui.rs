@@ -263,3 +263,22 @@ fn draw_models_modal(f: &mut Frame, app: &App) {
 
     f.render_widget(table, popup_area);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::backend::TestBackend;
+    use ratatui::Terminal;
+
+    #[test]
+    fn test_ui_draw_normal_and_modal() {
+        let backend = TestBackend::new(120, 40);
+        let mut terminal = Terminal::new(backend).unwrap();
+
+        let mut app = App::new();
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+
+        app.show_models_modal = true;
+        terminal.draw(|f| draw(f, &mut app)).unwrap();
+    }
+}

@@ -152,6 +152,22 @@ fn resolve_target_pane() -> String {
         }
     }
 
+    // 3. Query $HERDR_BIN_PATH pane list for focused/active pane
+    let herdr_bin = std::env::var("HERDR_BIN_PATH").unwrap_or_else(|_| "herdr".to_string());
+    if let Ok(output) = Command::new(&herdr_bin).arg("pane").arg("list").output() {
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            for line in stdout.lines() {
+                if line.contains("active") || line.contains("*") || line.contains("focused") {
+                    let parts: Vec<&str> = line.split_whitespace().collect();
+                    if let Some(first) = parts.first() {
+                        return first.trim_matches(':').to_string();
+                    }
+                }
+            }
+        }
+    }
+
     // Default fallback pane
     "active".to_string()
 }

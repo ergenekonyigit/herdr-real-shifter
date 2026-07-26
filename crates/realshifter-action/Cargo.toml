@@ -1,0 +1,10 @@
+[package]
+name = "realshifter-action"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+realshifter-core = { path = "../realshifter-core" }
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true

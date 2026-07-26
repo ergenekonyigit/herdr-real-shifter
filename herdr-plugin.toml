@@ -1,0 +1,103 @@
+# herdr-plugin.toml - RealShifter Herdr Plugin Manifest
+id = "ergenekonyigit.realshifter"
+name = "RealShifter"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Map USB H-pattern gear shifter (Logitech DFS) and hotkeys to AI CLI tool commands in Herdr"
+platforms = ["macos"]
+
+[[build]]
+command = ["cargo", "build", "--release"]
+
+[[startup]]
+command = ["./target/release/realshifter-daemon", "--detach"]
+
+[[panes]]
+id = "dashboard"
+title = "RealShifter Dashboard"
+placement = "overlay"
+command = ["./target/release/realshifter-tui"]
+
+[[actions]]
+id = "shift-gear-1"
+title = "Shift to Gear 1"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "1"]
+
+[[actions]]
+id = "shift-gear-2"
+title = "Shift to Gear 2"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "2"]
+
+[[actions]]
+id = "shift-gear-3"
+title = "Shift to Gear 3"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "3"]
+
+[[actions]]
+id = "shift-gear-4"
+title = "Shift to Gear 4"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "4"]
+
+[[actions]]
+id = "shift-gear-5"
+title = "Shift to Gear 5"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "5"]
+
+[[actions]]
+id = "shift-gear-6"
+title = "Shift to Gear 6"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "6"]
+
+[[actions]]
+id = "shift-reverse"
+title = "Shift to Reverse"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "shift", "reverse"]
+
+[[actions]]
+id = "switch-profile"
+title = "Switch CLI Profile"
+contexts = ["pane"]
+command = ["./target/release/realshifter-action", "profile", "next"]
+
+[[events]]
+on = "agent.completed"
+command = ["./target/release/realshifter-action", "on-agent-complete"]
+
+[[keybindings]]
+key = "ctrl+shift+1"
+action = "shift-gear-1"
+
+[[keybindings]]
+key = "ctrl+shift+2"
+action = "shift-gear-2"
+
+[[keybindings]]
+key = "ctrl+shift+3"
+action = "shift-gear-3"
+
+[[keybindings]]
+key = "ctrl+shift+4"
+action = "shift-gear-4"
+
+[[keybindings]]
+key = "ctrl+shift+5"
+action = "shift-gear-5"
+
+[[keybindings]]
+key = "ctrl+shift+6"
+action = "shift-gear-6"
+
+[[keybindings]]
+key = "ctrl+shift+r"
+action = "shift-reverse"
+
+[[keybindings]]
+key = "ctrl+shift+p"
+action = "switch-profile"

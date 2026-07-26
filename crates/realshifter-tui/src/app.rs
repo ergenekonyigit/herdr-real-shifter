@@ -9,6 +9,7 @@ pub enum EditField {
     Model,
     Effort,
     CustomCommand,
+    Label,
     Save,
     Cancel,
 }
@@ -19,7 +20,8 @@ impl EditField {
             EditField::ActionType => EditField::Model,
             EditField::Model => EditField::Effort,
             EditField::Effort => EditField::CustomCommand,
-            EditField::CustomCommand => EditField::Save,
+            EditField::CustomCommand => EditField::Label,
+            EditField::Label => EditField::Save,
             EditField::Save => EditField::Cancel,
             EditField::Cancel => EditField::ActionType,
         }
@@ -31,7 +33,8 @@ impl EditField {
             EditField::Model => EditField::ActionType,
             EditField::Effort => EditField::Model,
             EditField::CustomCommand => EditField::Effort,
-            EditField::Save => EditField::CustomCommand,
+            EditField::Label => EditField::CustomCommand,
+            EditField::Save => EditField::Label,
             EditField::Cancel => EditField::Save,
         }
     }
@@ -258,13 +261,12 @@ impl App {
     }
 
     pub fn cycle_edit_model(&mut self) {
-        let models: Vec<String> = if let Some(meta) = self.config.profiles.get(&self.view_profile).and_then(|p| p.metadata.as_ref()) {
-            meta.available_models.iter().map(|m| m.id.clone()).collect()
-        } else if let Some(meta) = self.config.profiles.get(&CliProfile::AgyCli).and_then(|p| p.metadata.as_ref()) {
-            meta.available_models.iter().map(|m| m.id.clone()).collect()
-        } else {
-            vec![]
-        };
+        let models: Vec<String> = self
+            .config
+            .available_models(self.view_profile)
+            .iter()
+            .map(|m| m.id.clone())
+            .collect();
 
         if let Some(ref mut es) = self.edit_state {
             if models.is_empty() {
@@ -296,16 +298,20 @@ impl App {
 
     pub fn handle_edit_char(&mut self, c: char) {
         if let Some(ref mut es) = self.edit_state {
-            if es.focused_field == EditField::CustomCommand {
-                es.custom_command.push(c);
+            match es.focused_field {
+                EditField::CustomCommand => es.custom_command.push(c),
+                EditField::Label => es.label.push(c),
+                _ => {}
             }
         }
     }
 
     pub fn handle_edit_backspace(&mut self) {
         if let Some(ref mut es) = self.edit_state {
-            if es.focused_field == EditField::CustomCommand {
-                es.custom_command.pop();
+            match es.focused_field {
+                EditField::CustomCommand => { es.custom_command.pop(); },
+                EditField::Label => { es.label.pop(); },
+                _ => {}
             }
         }
     }

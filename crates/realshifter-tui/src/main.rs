@@ -83,7 +83,7 @@ fn run_app(
                                 es.focused_field = es.focused_field.prev();
                             }
                         }
-                        KeyCode::Left | KeyCode::Right | KeyCode::Char(' ') => {
+                        KeyCode::Left | KeyCode::Right => {
                             let current_field = app.edit_state.as_ref().map(|es| es.focused_field.clone());
                             match current_field {
                                 Some(EditField::ActionType) => app.cycle_edit_action_type(),
@@ -97,8 +97,16 @@ fn run_app(
                         KeyCode::Backspace => app.handle_edit_backspace(),
                         KeyCode::Char(c) => {
                             let current_field = app.edit_state.as_ref().map(|es| es.focused_field.clone());
-                            if current_field == Some(EditField::CustomCommand) {
-                                app.handle_edit_char(c);
+                            match current_field {
+                                Some(EditField::CustomCommand) | Some(EditField::Label) => {
+                                    app.handle_edit_char(c);
+                                }
+                                Some(EditField::ActionType) => app.cycle_edit_action_type(),
+                                Some(EditField::Model) => app.cycle_edit_model(),
+                                Some(EditField::Effort) => app.cycle_edit_effort(),
+                                Some(EditField::Save) if c == ' ' => app.save_editing(),
+                                Some(EditField::Cancel) if c == ' ' => app.cancel_editing(),
+                                _ => {}
                             }
                         }
                         _ => {}

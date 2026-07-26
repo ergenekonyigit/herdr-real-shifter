@@ -202,6 +202,16 @@ impl Config {
             p_cfg.mappings.push(new_mapping);
         }
     }
+
+    pub fn available_models(&self, profile: CliProfile) -> &[ModelInfo] {
+        if let Some(meta) = self.profiles.get(&profile).and_then(|p| p.metadata.as_ref()) {
+            &meta.available_models
+        } else if let Some(meta) = self.profiles.get(&CliProfile::AgyCli).and_then(|p| p.metadata.as_ref()) {
+            &meta.available_models
+        } else {
+            &[]
+        }
+    }
 }
 
 #[cfg(test)]

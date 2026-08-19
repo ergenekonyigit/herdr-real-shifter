@@ -1,0 +1,7 @@
+interface:
+  display_name: "RealShifter"
+  short_description: "Sync LLM model gear mappings and execute hardware/hotkey gear shifts across AI coding CLIs."
+  brand_color: "#E53E3E"
+
+policy:
+  allow_implicit_invocation: true

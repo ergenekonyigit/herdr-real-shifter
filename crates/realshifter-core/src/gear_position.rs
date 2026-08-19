@@ -165,8 +165,14 @@ mod tests {
 
         assert_eq!("1".parse::<GearPosition>().unwrap(), GearPosition::Gear1);
         assert_eq!("r".parse::<GearPosition>().unwrap(), GearPosition::Reverse);
-        assert_eq!("neutral".parse::<GearPosition>().unwrap(), GearPosition::Neutral);
-        assert_eq!("gear 3".parse::<GearPosition>().unwrap(), GearPosition::Gear3);
+        assert_eq!(
+            "neutral".parse::<GearPosition>().unwrap(),
+            GearPosition::Neutral
+        );
+        assert_eq!(
+            "gear 3".parse::<GearPosition>().unwrap(),
+            GearPosition::Gear3
+        );
         assert!("invalid".parse::<GearPosition>().is_err());
     }
 

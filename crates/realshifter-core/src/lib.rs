@@ -12,10 +12,13 @@ pub use config::Config;
 pub use gear_action_type::GearActionType;
 pub use gear_mapping::GearMapping;
 pub use gear_position::GearPosition;
-pub use pane_driver::{MockPaneDriver, PaneAutomationService, PaneDriver, SystemHerdrPaneDriver};
+pub use pane_driver::{
+    AgyModelTarget, MockPaneDriver, PaneAutomationService, PaneDriver, ReasoningEffort,
+    SystemHerdrPaneDriver,
+};
 pub use state::SessionState;
-pub use theme::gear_color;
 use std::path::PathBuf;
+pub use theme::{Theme, ThemeMode, gear_color, gear_color_for_theme};
 
 pub fn action_binary_path() -> PathBuf {
     if let Ok(path) = std::env::var("HERDR_ACTION_BIN") {

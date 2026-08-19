@@ -1,11 +1,12 @@
 use clap::Parser;
 use hidapi::{HidApi, HidDevice};
-use realshifter_core::{GearPosition, SessionState};
+use realshifter_core::{Config, GearPosition, SessionState};
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::Duration;
 
 const LOGITECH_VENDOR_ID: u16 = 0x046d;
+const ARDUINO_VENDOR_ID: u16 = 0x2341;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about = "RealShifter IOKit USB HID Listener Daemon")]
@@ -65,16 +66,47 @@ fn main() {
 
 fn listen_hid_loop(last_gear: &mut GearPosition) -> Result<(), Box<dyn std::error::Error>> {
     let api = HidApi::new()?;
-    let device_info = api
+    let candidates: Vec<_> = api
         .device_list()
-        .find(|d| d.vendor_id() == LOGITECH_VENDOR_ID)
-        .ok_or("No Logitech Driving Force Shifter USB device detected")?;
+        .filter(|d| {
+            let vid = d.vendor_id();
+            vid == LOGITECH_VENDOR_ID || vid == ARDUINO_VENDOR_ID || d.usage_page() == 0x0001
+        })
+        .collect();
+
+    for dev in &candidates {
+        println!(
+            "Found HID candidate: {:?} ({:04x}:{:04x}) UsagePage: {:04x}, Usage: {:04x}, Interface: {}",
+            dev.product_string().unwrap_or("Unknown"),
+            dev.vendor_id(),
+            dev.product_id(),
+            dev.usage_page(),
+            dev.usage(),
+            dev.interface_number()
+        );
+    }
+
+    let device_info = candidates
+        .iter()
+        .find(|d| {
+            d.usage_page() == 0x0001
+                && (d.usage() == 0x0004 || d.usage() == 0x0005 || d.usage() == 0x0008)
+        })
+        .or_else(|| candidates.iter().find(|d| d.interface_number() > 0))
+        .or_else(|| candidates.first())
+        .copied()
+        .ok_or(
+            "No supported USB Shifter/Joystick device detected (Logitech, Arduino, or Generic HID)",
+        )?;
 
     println!(
-        "Connected to USB Shifter HID Device: {:?} ({:04x}:{:04x})",
-        device_info.product_string().unwrap_or("Logitech Shifter"),
+        "Connected to USB Shifter HID Device: {:?} ({:04x}:{:04x}) [UsagePage: {:04x}, Usage: {:04x}, Interface: {}]",
+        device_info.product_string().unwrap_or("USB Shifter"),
         device_info.vendor_id(),
-        device_info.product_id()
+        device_info.product_id(),
+        device_info.usage_page(),
+        device_info.usage(),
+        device_info.interface_number()
     );
 
     let device: HidDevice = device_info.open_device(&api)?;
@@ -85,8 +117,14 @@ fn listen_hid_loop(last_gear: &mut GearPosition) -> Result<(), Box<dyn std::erro
     loop {
         match device.read_timeout(&mut buf, 50) {
             Ok(size) if size > 0 => {
-                let new_gear = parse_shifter_hid_report(&buf[..size]);
+                let report = &buf[..size];
+                let new_gear = parse_shifter_hid_report(report);
                 if new_gear != *last_gear {
+                    println!(
+                        "[HID Report] Raw: {:02x?} -> Parsed: {}",
+                        report,
+                        new_gear.full_name()
+                    );
                     *last_gear = new_gear;
                     handle_gear_shift(new_gear);
                 }
@@ -100,10 +138,24 @@ fn listen_hid_loop(last_gear: &mut GearPosition) -> Result<(), Box<dyn std::erro
 }
 
 fn parse_shifter_hid_report(report: &[u8]) -> GearPosition {
+    if report.is_empty() {
+        return GearPosition::Neutral;
+    }
+
+    // If the first byte is an HID Report ID (e.g. 0x03 from Arduino Joystick or 0x01/0x02),
+    // and there is at least a second byte, the button bitmask is in report[1..]
+    let button_bytes = if report.len() >= 2 && report[0] == 0x03 {
+        &report[1..]
+    } else if report.len() >= 2 && (report[0] == 0x01 || report[0] == 0x02) && report[1] != 0 {
+        &report[1..]
+    } else {
+        report
+    };
+
     for btn in 0..7u8 {
         let byte_idx = (btn / 8) as usize;
         let bit_idx = btn % 8;
-        if byte_idx < report.len() && (report[byte_idx] & (1 << bit_idx)) != 0 {
+        if byte_idx < button_bytes.len() && (button_bytes[byte_idx] & (1 << bit_idx)) != 0 {
             return GearPosition::from_hid_button(btn);
         }
     }
@@ -112,22 +164,38 @@ fn parse_shifter_hid_report(report: &[u8]) -> GearPosition {
 
 fn handle_gear_shift(new_gear: GearPosition) {
     let mut state = SessionState::load();
+    let config = Config::load();
+    let service = realshifter_core::PaneAutomationService::default();
+
+    let active_profile = state.active_profile;
+    let target_pane = service.resolve_target_pane();
+
+    if let Some(mapping) = config.get_mapping(active_profile, new_gear) {
+        if mapping.is_enabled {
+            let label = mapping.display_label();
+            let command_str = mapping.effective_command();
+
+            state.record_shift(new_gear, Some(label.clone()));
+            if let Err(e) = state.save() {
+                eprintln!("Failed to save state: {e}");
+            }
+
+            println!(
+                "[In-Process Shift] {} [{}] -> {} (pane: {})",
+                new_gear.full_name(),
+                active_profile.display_name(),
+                label,
+                target_pane
+            );
+
+            service.dispatch_action(&target_pane, &mapping.action_type, &command_str);
+            return;
+        }
+    }
 
     state.record_shift(new_gear, None);
     if let Err(e) = state.save() {
         eprintln!("Failed to save state: {e}");
-    }
-
-    if new_gear.is_driving() || new_gear == GearPosition::Reverse {
-        trigger_action(new_gear);
-    }
-}
-
-fn trigger_action(gear: GearPosition) {
-    let action_bin = realshifter_core::action_binary_path();
-
-    if let Err(e) = Command::new(action_bin).arg("shift").arg(gear.display_name()).spawn() {
-        eprintln!("Failed to spawn action process: {e}");
     }
 }
 
@@ -138,7 +206,10 @@ mod tests {
     #[test]
     fn test_parse_shifter_hid_report() {
         let empty_report = [0u8; 8];
-        assert_eq!(parse_shifter_hid_report(&empty_report), GearPosition::Neutral);
+        assert_eq!(
+            parse_shifter_hid_report(&empty_report),
+            GearPosition::Neutral
+        );
 
         // Button 0 -> Gear 1 (bit 0 of byte 0 set)
         let gear1_report = [0b0000_0001, 0, 0, 0];
@@ -150,7 +221,26 @@ mod tests {
 
         // Button 6 -> Reverse (bit 6 of byte 0 set)
         let reverse_report = [0b0100_0000, 0, 0, 0];
-        assert_eq!(parse_shifter_hid_report(&reverse_report), GearPosition::Reverse);
+        assert_eq!(
+            parse_shifter_hid_report(&reverse_report),
+            GearPosition::Reverse
+        );
+
+        // Arduino Leonardo Report ID 0x03 tests
+        assert_eq!(
+            parse_shifter_hid_report(&[0x03, 0x00]),
+            GearPosition::Neutral
+        );
+        assert_eq!(parse_shifter_hid_report(&[0x03, 0x01]), GearPosition::Gear1);
+        assert_eq!(parse_shifter_hid_report(&[0x03, 0x02]), GearPosition::Gear2);
+        assert_eq!(parse_shifter_hid_report(&[0x03, 0x04]), GearPosition::Gear3);
+        assert_eq!(parse_shifter_hid_report(&[0x03, 0x08]), GearPosition::Gear4);
+        assert_eq!(parse_shifter_hid_report(&[0x03, 0x10]), GearPosition::Gear5);
+        assert_eq!(parse_shifter_hid_report(&[0x03, 0x20]), GearPosition::Gear6);
+        assert_eq!(
+            parse_shifter_hid_report(&[0x03, 0x40]),
+            GearPosition::Reverse
+        );
     }
 
     #[test]

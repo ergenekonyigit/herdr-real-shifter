@@ -21,18 +21,28 @@ pub struct ConfigMetadata {
 impl Default for ConfigMetadata {
     fn default() -> Self {
         Self {
-            description: "RealShifter configuration snapshot of supported CLI models and effort levels.".to_string(),
-            generated_at: "2026-07-27T01:10:18+03:00".to_string(),
+            description:
+                "RealShifter configuration snapshot of supported CLI models and effort levels."
+                    .to_string(),
+            generated_at: "2026-08-19T22:35:00+03:00".to_string(),
             available_models: vec![
                 ModelInfo {
-                    id: "gemini-3.6-flash".to_string(),
-                    name: "Gemini 3.6 Flash".to_string(),
-                    effort_levels: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
+                    id: "gemini-3.7-flash".to_string(),
+                    name: "Gemini 3.7 Flash".to_string(),
+                    effort_levels: vec![
+                        "low".to_string(),
+                        "medium".to_string(),
+                        "high".to_string(),
+                    ],
                 },
                 ModelInfo {
                     id: "gemini-3.5-flash".to_string(),
                     name: "Gemini 3.5 Flash".to_string(),
-                    effort_levels: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
+                    effort_levels: vec![
+                        "low".to_string(),
+                        "medium".to_string(),
+                        "high".to_string(),
+                    ],
                 },
                 ModelInfo {
                     id: "gemini-3.1-pro".to_string(),
@@ -59,6 +69,139 @@ impl Default for ConfigMetadata {
     }
 }
 
+impl ConfigMetadata {
+    pub fn default_for(profile: CliProfile) -> Self {
+        match profile {
+            CliProfile::CodexCli => Self {
+                description: "OpenAI Codex CLI model presets".to_string(),
+                generated_at: "2026-08-19".to_string(),
+                available_models: vec![
+                    ModelInfo {
+                        id: "gpt-5.6-terra".to_string(),
+                        name: "GPT-5.6 Terra (Balanced)".to_string(),
+                        effort_levels: vec![
+                            "low".to_string(),
+                            "medium".to_string(),
+                            "high".to_string(),
+                        ],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.6-luna".to_string(),
+                        name: "GPT-5.6 Luna (Fast & Affordable)".to_string(),
+                        effort_levels: vec![
+                            "low".to_string(),
+                            "medium".to_string(),
+                            "high".to_string(),
+                        ],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.5".to_string(),
+                        name: "GPT-5.5 (Frontier Complex Coding)".to_string(),
+                        effort_levels: vec!["medium".to_string(), "high".to_string()],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.4".to_string(),
+                        name: "GPT-5.4 (Strong Everyday Coding)".to_string(),
+                        effort_levels: vec![
+                            "low".to_string(),
+                            "medium".to_string(),
+                            "high".to_string(),
+                        ],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.4-mini".to_string(),
+                        name: "GPT-5.4 Mini (Cost-efficient)".to_string(),
+                        effort_levels: vec!["low".to_string(), "medium".to_string()],
+                    },
+                ],
+            },
+            CliProfile::OpenCodeCli => Self {
+                description: "OpenCode free model presets".to_string(),
+                generated_at: "2026-08-20".to_string(),
+                available_models: vec![
+                    ModelInfo {
+                        id: "nemotron-3.5-lightning-free".to_string(),
+                        name: "Nemotron 3.5 Lightning (Free)".to_string(),
+                        effort_levels: vec![],
+                    },
+                    ModelInfo {
+                        id: "deepseek-v4-flash-free".to_string(),
+                        name: "DeepSeek V4 Flash (Free)".to_string(),
+                        effort_levels: vec![
+                            "default".to_string(),
+                            "low".to_string(),
+                            "high".to_string(),
+                            "max".to_string(),
+                        ],
+                    },
+                    ModelInfo {
+                        id: "laguna-s-2.1-free".to_string(),
+                        name: "Laguna S 2.1 (Free)".to_string(),
+                        effort_levels: vec![],
+                    },
+                    ModelInfo {
+                        id: "hy3-free".to_string(),
+                        name: "Hy3 (Free)".to_string(),
+                        effort_levels: vec![],
+                    },
+                    ModelInfo {
+                        id: "nemotron-3-ultra-free".to_string(),
+                        name: "Nemotron 3 Ultra (Free)".to_string(),
+                        effort_levels: vec![],
+                    },
+                    ModelInfo {
+                        id: "mimo-v2.5-free".to_string(),
+                        name: "MiMo V2.5 (Free)".to_string(),
+                        effort_levels: vec![],
+                    },
+                    ModelInfo {
+                        id: "big-pickle".to_string(),
+                        name: "Big Pickle (Free)".to_string(),
+                        effort_levels: vec![],
+                    },
+                ],
+            },
+            CliProfile::Pi => Self {
+                description: "Pi Coding Agent model presets".to_string(),
+                generated_at: "2026-08-20".to_string(),
+                available_models: vec![
+                    ModelInfo {
+                        id: "gpt-5.4-mini".to_string(),
+                        name: "GPT-5.4 Mini (Fast & Efficient)".to_string(),
+                        effort_levels: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.4".to_string(),
+                        name: "GPT-5.4 (Everyday Coding)".to_string(),
+                        effort_levels: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.6-luna".to_string(),
+                        name: "GPT-5.6 Luna (Fast & Affordable)".to_string(),
+                        effort_levels: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.6-terra".to_string(),
+                        name: "GPT-5.6 Terra (Balanced)".to_string(),
+                        effort_levels: vec!["low".to_string(), "medium".to_string(), "high".to_string()],
+                    },
+                    ModelInfo {
+                        id: "gpt-5.5".to_string(),
+                        name: "GPT-5.5 (Frontier Complex Coding)".to_string(),
+                        effort_levels: vec!["medium".to_string(), "high".to_string()],
+                    },
+                    ModelInfo {
+                        id: "claude-sonnet-4-6".to_string(),
+                        name: "Claude Sonnet 4.6 (Thinking)".to_string(),
+                        effort_levels: vec!["high".to_string(), "max".to_string()],
+                    },
+                ],
+            },
+            _ => Self::default(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProfileConfig {
     pub profile: CliProfile,
@@ -69,10 +212,14 @@ pub struct ProfileConfig {
 
 impl ProfileConfig {
     pub fn default_for(profile: CliProfile) -> Self {
-        let metadata = if profile == CliProfile::AgyCli {
-            Some(ConfigMetadata::default())
-        } else {
-            None
+        let metadata = match profile {
+            CliProfile::AgyCli
+            | CliProfile::CodexCli
+            | CliProfile::OpenCodeCli
+            | CliProfile::Pi => {
+                Some(ConfigMetadata::default_for(profile))
+            }
+            _ => None,
         };
         Self {
             profile,
@@ -86,6 +233,8 @@ impl ProfileConfig {
 pub struct Config {
     pub test_mode: bool,
     pub preferred_terminal: String,
+    #[serde(default)]
+    pub theme_mode: crate::theme::ThemeMode,
     #[serde(skip)]
     pub profiles: HashMap<CliProfile, ProfileConfig>,
 }
@@ -99,6 +248,7 @@ impl Default for Config {
         Self {
             test_mode: false,
             preferred_terminal: "Terminal".to_string(),
+            theme_mode: crate::theme::ThemeMode::Auto,
             profiles,
         }
     }
@@ -186,7 +336,10 @@ impl Config {
         if let Some(p_cfg) = self.profiles.get(&profile) {
             p_cfg.mappings.iter().find(|m| m.gear == gear).cloned()
         } else {
-            profile.default_mappings().into_iter().find(|m| m.gear == gear)
+            profile
+                .default_mappings()
+                .into_iter()
+                .find(|m| m.gear == gear)
         }
     }
 
@@ -196,7 +349,11 @@ impl Config {
             .entry(profile)
             .or_insert_with(|| ProfileConfig::default_for(profile));
 
-        if let Some(existing) = p_cfg.mappings.iter_mut().find(|m| m.gear == new_mapping.gear) {
+        if let Some(existing) = p_cfg
+            .mappings
+            .iter_mut()
+            .find(|m| m.gear == new_mapping.gear)
+        {
             *existing = new_mapping;
         } else {
             p_cfg.mappings.push(new_mapping);
@@ -204,9 +361,17 @@ impl Config {
     }
 
     pub fn available_models(&self, profile: CliProfile) -> &[ModelInfo] {
-        if let Some(meta) = self.profiles.get(&profile).and_then(|p| p.metadata.as_ref()) {
+        if let Some(meta) = self
+            .profiles
+            .get(&profile)
+            .and_then(|p| p.metadata.as_ref())
+        {
             &meta.available_models
-        } else if let Some(meta) = self.profiles.get(&CliProfile::AgyCli).and_then(|p| p.metadata.as_ref()) {
+        } else if let Some(meta) = self
+            .profiles
+            .get(&CliProfile::AgyCli)
+            .and_then(|p| p.metadata.as_ref())
+        {
             &meta.available_models
         } else {
             &[]
@@ -241,12 +406,12 @@ mod tests {
 
         let loaded = Config::load();
         assert!(loaded.test_mode);
-        assert_eq!(loaded.profiles.len(), 5);
+        assert_eq!(loaded.profiles.len(), 6);
 
         let agy_p = loaded.profiles.get(&CliProfile::AgyCli).unwrap();
         let agy_meta = agy_p.metadata.as_ref().unwrap();
         assert_eq!(agy_meta.available_models.len(), 6);
-        assert_eq!(agy_meta.available_models[0].id, "gemini-3.6-flash");
+        assert_eq!(agy_meta.available_models[0].id, "gemini-3.7-flash");
 
         let _ = fs::remove_dir_all(&dir);
     }
@@ -258,13 +423,15 @@ mod tests {
             GearPosition::Gear1,
             GearActionType::AgyCli,
             "",
-            Some("gemini-3.6-flash-high"),
-            "Gemini 3.6 Flash High",
+            Some("gemini-3.7-flash-high"),
+            "Gemini 3.7 Flash High",
             true,
         );
         cfg.update_mapping(CliProfile::AgyCli, new_m.clone());
-        let fetched = cfg.get_mapping(CliProfile::AgyCli, GearPosition::Gear1).unwrap();
-        assert_eq!(fetched.label, "Gemini 3.6 Flash High");
-        assert_eq!(fetched.model_flag.as_deref(), Some("gemini-3.6-flash-high"));
+        let fetched = cfg
+            .get_mapping(CliProfile::AgyCli, GearPosition::Gear1)
+            .unwrap();
+        assert_eq!(fetched.label, "Gemini 3.7 Flash High");
+        assert_eq!(fetched.model_flag.as_deref(), Some("gemini-3.7-flash-high"));
     }
 }

@@ -8,6 +8,7 @@ pub enum CliProfile {
     ClaudeCode,
     CodexCli,
     OpenCodeCli,
+    Pi,
     #[default]
     AgyCli,
     Custom,
@@ -19,6 +20,7 @@ impl CliProfile {
             CliProfile::ClaudeCode => "Claude Code",
             CliProfile::CodexCli => "Codex CLI",
             CliProfile::OpenCodeCli => "OpenCode CLI",
+            CliProfile::Pi => "Pi Agent",
             CliProfile::AgyCli => "Antigravity (AGY)",
             CliProfile::Custom => "Custom / Multi-Tool",
         }
@@ -29,6 +31,7 @@ impl CliProfile {
             CliProfile::ClaudeCode => "🧠",
             CliProfile::CodexCli => "💻",
             CliProfile::OpenCodeCli => "⚡",
+            CliProfile::Pi => "π",
             CliProfile::AgyCli => "🛸",
             CliProfile::Custom => "🎛️",
         }
@@ -39,6 +42,7 @@ impl CliProfile {
             CliProfile::ClaudeCode => "claude.json",
             CliProfile::CodexCli => "codex.json",
             CliProfile::OpenCodeCli => "opencode.json",
+            CliProfile::Pi => "pi.json",
             CliProfile::AgyCli => "agy.json",
             CliProfile::Custom => "custom.json",
         }
@@ -46,12 +50,29 @@ impl CliProfile {
 
     pub fn all() -> &'static [CliProfile] {
         &[
+            CliProfile::AgyCli,
             CliProfile::ClaudeCode,
             CliProfile::CodexCli,
             CliProfile::OpenCodeCli,
-            CliProfile::AgyCli,
+            CliProfile::Pi,
             CliProfile::Custom,
         ]
+    }
+
+    pub fn next(&self) -> Self {
+        let all = Self::all();
+        let idx = all.iter().position(|p| p == self).unwrap_or(0);
+        all[(idx + 1) % all.len()]
+    }
+
+    pub fn prev(&self) -> Self {
+        let all = Self::all();
+        let idx = all.iter().position(|p| p == self).unwrap_or(0);
+        if idx == 0 {
+            all[all.len() - 1]
+        } else {
+            all[idx - 1]
+        }
     }
 
     pub fn from_keyword(text: &str) -> Option<Self> {
@@ -64,6 +85,8 @@ impl CliProfile {
             Some(CliProfile::CodexCli)
         } else if t_low.contains("opencode") {
             Some(CliProfile::OpenCodeCli)
+        } else if t_low.contains("pi") || t_low.contains("π") {
+            Some(CliProfile::Pi)
         } else {
             None
         }
@@ -75,57 +98,57 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear1,
                     GearActionType::ClaudeCode,
-                    "claude",
-                    Some("sonnet"),
-                    "Claude Sonnet",
+                    "/model haiku",
+                    None::<String>,
+                    "Haiku 4.5 (Fast)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear2,
                     GearActionType::ClaudeCode,
-                    "claude",
-                    Some("haiku"),
-                    "Claude Haiku",
+                    "/model sonnet",
+                    None::<String>,
+                    "Sonnet 5 (Daily)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear3,
                     GearActionType::ClaudeCode,
-                    "claude",
-                    Some("opus"),
-                    "Claude Opus",
+                    "/model opus",
+                    None::<String>,
+                    "Opus 5 (1M Context)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear4,
                     GearActionType::ClaudeCode,
-                    "claude",
-                    Some("sonnet --thinking"),
-                    "Claude Sonnet (Thinking)",
+                    "/model sonnet --thinking",
+                    None::<String>,
+                    "Sonnet 5 (Thinking)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear5,
                     GearActionType::ClaudeCode,
-                    "claude --compact",
+                    "/model opus --thinking",
                     None::<String>,
-                    "Compact Context",
+                    "Opus 5 (Thinking)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear6,
                     GearActionType::ClaudeCode,
-                    "claude --resume",
+                    "/model fable",
                     None::<String>,
-                    "Resume Session",
+                    "Fable 5 (Frontier)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Reverse,
-                    GearActionType::Rollback,
-                    "/undo",
+                    GearActionType::NewSession,
+                    "claude",
                     None::<String>,
-                    "Rollback",
+                    "New Claude Session (Tab)",
                     true,
                 ),
             ],
@@ -133,57 +156,57 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear1,
                     GearActionType::CodexCli,
-                    "codex",
+                    "/model gpt-5.4-mini",
                     None::<String>,
-                    "Codex Default",
+                    "GPT-5.4 Mini",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear2,
                     GearActionType::CodexCli,
-                    "codex --model gpt-4o",
+                    "/model gpt-5.4",
                     None::<String>,
-                    "GPT-4o",
+                    "GPT-5.4 Everyday",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear3,
                     GearActionType::CodexCli,
-                    "codex --model gpt-4o-mini",
+                    "/model gpt-5.6-luna",
                     None::<String>,
-                    "GPT-4o Mini",
+                    "GPT-5.6 Luna",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear4,
                     GearActionType::CodexCli,
-                    "codex --model o1",
+                    "/model gpt-5.6-terra",
                     None::<String>,
-                    "o1 Reasoning",
+                    "GPT-5.6 Terra",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear5,
                     GearActionType::CodexCli,
-                    "codex --model o3-mini",
+                    "/model gpt-5.5",
                     None::<String>,
-                    "o3-mini Reasoning",
+                    "GPT-5.5 Frontier",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear6,
                     GearActionType::CodexCli,
-                    "codex --full-auto",
+                    "/model gpt-5.5-high",
                     None::<String>,
-                    "Full Auto Mode",
+                    "GPT-5.5 (High Reasoning)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Reverse,
-                    GearActionType::Rollback,
-                    "/undo",
+                    GearActionType::NewSession,
+                    "codex",
                     None::<String>,
-                    "Rollback",
+                    "New Codex Session (Tab)",
                     true,
                 ),
             ],
@@ -191,57 +214,57 @@ impl CliProfile {
                 GearMapping::new(
                     GearPosition::Gear1,
                     GearActionType::OpenCodeCli,
-                    "opencode",
-                    None::<String>,
-                    "OpenCode Interactive",
+                    "/models",
+                    Some("nemotron-3.5-lightning-free"),
+                    "Nemotron 3.5 Lightning (Free)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear2,
                     GearActionType::OpenCodeCli,
-                    "opencode run",
-                    None::<String>,
-                    "OpenCode Run",
+                    "/models",
+                    Some("deepseek-v4-flash-free"),
+                    "DeepSeek V4 Flash (Free)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear3,
                     GearActionType::OpenCodeCli,
-                    "opencode review",
-                    None::<String>,
-                    "OpenCode Review",
+                    "/models",
+                    Some("laguna-s-2.1-free"),
+                    "Laguna S 2.1 (Free)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear4,
                     GearActionType::OpenCodeCli,
-                    "opencode debug",
-                    None::<String>,
-                    "OpenCode Debug",
+                    "/models",
+                    Some("hy3-free"),
+                    "Hy3 (Free)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear5,
                     GearActionType::OpenCodeCli,
-                    "opencode test",
-                    None::<String>,
-                    "OpenCode Test",
+                    "/models",
+                    Some("nemotron-3-ultra-free"),
+                    "Nemotron 3 Ultra (Free)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear6,
                     GearActionType::OpenCodeCli,
-                    "opencode agent",
-                    None::<String>,
-                    "OpenCode Agent",
+                    "/models",
+                    Some("mimo-v2.5-free"),
+                    "MiMo V2.5 (Free)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Reverse,
-                    GearActionType::Rollback,
-                    "/undo",
+                    GearActionType::NewSession,
+                    "opencode",
                     None::<String>,
-                    "Rollback",
+                    "New OpenCode Session (Tab)",
                     true,
                 ),
             ],
@@ -250,24 +273,24 @@ impl CliProfile {
                     GearPosition::Gear1,
                     GearActionType::AgyCli,
                     "",
-                    Some("gemini-3.6-flash-low"),
-                    "Gemini 3.6 Flash (Low)",
+                    Some("gemini-3.7-flash-low"),
+                    "Gemini 3.7 Flash (Low)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear2,
                     GearActionType::AgyCli,
                     "",
-                    Some("gemini-3.6-flash-medium"),
-                    "Gemini 3.6 Flash (Medium)",
+                    Some("gemini-3.7-flash-medium"),
+                    "Gemini 3.7 Flash (Medium)",
                     true,
                 ),
                 GearMapping::new(
                     GearPosition::Gear3,
                     GearActionType::AgyCli,
                     "",
-                    Some("gemini-3.6-flash-high"),
-                    "Gemini 3.6 Flash (High)",
+                    Some("gemini-3.7-flash-high"),
+                    "Gemini 3.7 Flash (High)",
                     true,
                 ),
                 GearMapping::new(
@@ -296,10 +319,68 @@ impl CliProfile {
                 ),
                 GearMapping::new(
                     GearPosition::Reverse,
-                    GearActionType::Rollback,
-                    "/undo",
+                    GearActionType::NewSession,
+                    "agy",
                     None::<String>,
-                    "Rollback",
+                    "New AGY Session (Tab)",
+                    true,
+                ),
+            ],
+            CliProfile::Pi => vec![
+                GearMapping::new(
+                    GearPosition::Gear1,
+                    GearActionType::Pi,
+                    "/model",
+                    Some("gpt-5.4-mini"),
+                    "GPT-5.4 Mini",
+                    true,
+                ),
+                GearMapping::new(
+                    GearPosition::Gear2,
+                    GearActionType::Pi,
+                    "/model",
+                    Some("gpt-5.4"),
+                    "GPT-5.4 Everyday",
+                    true,
+                ),
+                GearMapping::new(
+                    GearPosition::Gear3,
+                    GearActionType::Pi,
+                    "/model",
+                    Some("gpt-5.6-luna"),
+                    "GPT-5.6 Luna",
+                    true,
+                ),
+                GearMapping::new(
+                    GearPosition::Gear4,
+                    GearActionType::Pi,
+                    "/model",
+                    Some("gpt-5.6-terra"),
+                    "GPT-5.6 Terra",
+                    true,
+                ),
+                GearMapping::new(
+                    GearPosition::Gear5,
+                    GearActionType::Pi,
+                    "/model",
+                    Some("gpt-5.5"),
+                    "GPT-5.5 Frontier",
+                    true,
+                ),
+                GearMapping::new(
+                    GearPosition::Gear6,
+                    GearActionType::Pi,
+                    "/model",
+                    Some("claude-sonnet-4-6"),
+                    "Claude Sonnet 4.6",
+                    true,
+                ),
+                GearMapping::new(
+                    GearPosition::Reverse,
+                    GearActionType::NewSession,
+                    "pi",
+                    None::<String>,
+                    "New Pi Session (Tab)",
                     true,
                 ),
             ],
@@ -316,7 +397,7 @@ impl CliProfile {
                     GearPosition::Gear2,
                     GearActionType::AgyCli,
                     "",
-                    Some("gemini-3.6-flash-high"),
+                    Some("gemini-3.7-flash-high"),
                     "AGY Flash High",
                     true,
                 ),
@@ -354,10 +435,10 @@ impl CliProfile {
                 ),
                 GearMapping::new(
                     GearPosition::Reverse,
-                    GearActionType::Rollback,
-                    "/undo",
+                    GearActionType::NewSession,
+                    "",
                     None::<String>,
-                    "Rollback",
+                    "New Session (Tab)",
                     true,
                 ),
             ],
@@ -379,7 +460,10 @@ impl FromStr for CliProfile {
             "claudecode" | "claude code" | "claude" => Ok(CliProfile::ClaudeCode),
             "codexcli" | "codex cli" | "codex" => Ok(CliProfile::CodexCli),
             "opencodecli" | "opencode cli" | "opencode" => Ok(CliProfile::OpenCodeCli),
-            "agycli" | "agy cli" | "agy" | "antigravity" | "antigravity cli" => Ok(CliProfile::AgyCli),
+            "pi" | "piagent" | "pi agent" | "pi coding agent" | "π" => Ok(CliProfile::Pi),
+            "agycli" | "agy cli" | "agy" | "antigravity" | "antigravity cli" => {
+                Ok(CliProfile::AgyCli)
+            }
             "custom" | "custom / multi-tool" | "multi-tool" => Ok(CliProfile::Custom),
             _ => Err(format!("Unknown CLI profile: '{s}'")),
         }
@@ -394,7 +478,11 @@ mod tests {
     fn test_profile_defaults() {
         for profile in CliProfile::all() {
             let mappings = profile.default_mappings();
-            assert_eq!(mappings.len(), 7, "Each profile should have 7 driving gear mappings");
+            assert_eq!(
+                mappings.len(),
+                7,
+                "Each profile should have 7 driving gear mappings"
+            );
             assert!(!profile.display_name().is_empty());
             assert!(!profile.icon_symbol().is_empty());
             assert!(!profile.file_name().is_empty());
@@ -404,15 +492,47 @@ mod tests {
 
     #[test]
     fn test_profile_from_keyword_and_str() {
-        assert_eq!(CliProfile::from_keyword("gemini 3.6"), Some(CliProfile::AgyCli));
-        assert_eq!(CliProfile::from_keyword("claude-code"), Some(CliProfile::ClaudeCode));
-        assert_eq!(CliProfile::from_keyword("codex"), Some(CliProfile::CodexCli));
-        assert_eq!(CliProfile::from_keyword("opencode"), Some(CliProfile::OpenCodeCli));
+        assert_eq!(
+            CliProfile::from_keyword("gemini 3.7"),
+            Some(CliProfile::AgyCli)
+        );
+        assert_eq!(
+            CliProfile::from_keyword("gemini 3.6"),
+            Some(CliProfile::AgyCli)
+        );
+        assert_eq!(
+            CliProfile::from_keyword("claude-code"),
+            Some(CliProfile::ClaudeCode)
+        );
+        assert_eq!(
+            CliProfile::from_keyword("codex"),
+            Some(CliProfile::CodexCli)
+        );
+        assert_eq!(
+            CliProfile::from_keyword("opencode"),
+            Some(CliProfile::OpenCodeCli)
+        );
+        assert_eq!(
+            CliProfile::from_keyword("pi - fleet"),
+            Some(CliProfile::Pi)
+        );
+        assert_eq!(
+            CliProfile::from_keyword("π"),
+            Some(CliProfile::Pi)
+        );
         assert_eq!(CliProfile::from_keyword("unknown"), None);
 
-        assert_eq!("claude".parse::<CliProfile>().unwrap(), CliProfile::ClaudeCode);
+        assert_eq!(
+            "claude".parse::<CliProfile>().unwrap(),
+            CliProfile::ClaudeCode
+        );
         assert_eq!("codex".parse::<CliProfile>().unwrap(), CliProfile::CodexCli);
-        assert_eq!("opencode".parse::<CliProfile>().unwrap(), CliProfile::OpenCodeCli);
+        assert_eq!(
+            "opencode".parse::<CliProfile>().unwrap(),
+            CliProfile::OpenCodeCli
+        );
+        assert_eq!("pi".parse::<CliProfile>().unwrap(), CliProfile::Pi);
+        assert_eq!("π".parse::<CliProfile>().unwrap(), CliProfile::Pi);
         assert_eq!("agy".parse::<CliProfile>().unwrap(), CliProfile::AgyCli);
         assert_eq!("custom".parse::<CliProfile>().unwrap(), CliProfile::Custom);
         assert!("invalid".parse::<CliProfile>().is_err());

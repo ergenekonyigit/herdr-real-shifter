@@ -66,10 +66,6 @@ title = "Switch CLI Profile"
 contexts = ["pane"]
 command = ["./target/release/realshifter-action", "profile", "next"]
 
-[[events]]
-on = "agent.completed"
-command = ["./target/release/realshifter-action", "on-agent-complete"]
-
 [[keybindings]]
 key = "ctrl+shift+1"
 action = "shift-gear-1"

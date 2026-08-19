@@ -8,6 +8,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionState {
     pub current_gear: GearPosition,
+    #[serde(default)]
+    pub active_profile: crate::CliProfile,
+    /// Explicitly pinned target pane ID — overrides auto-detection when set.
+    /// Set via dashboard (P key) or `realshifter-action profile pin-pane <PANE_ID>`.
+    #[serde(default)]
+    pub pinned_pane_id: Option<String>,
     pub shift_counts: HashMap<GearPosition, u64>,
     pub total_shifts: u64,
     pub last_action: Option<String>,
@@ -22,6 +28,8 @@ impl Default for SessionState {
         }
         Self {
             current_gear: GearPosition::Neutral,
+            active_profile: crate::CliProfile::AgyCli,
+            pinned_pane_id: None,
             shift_counts: counts,
             total_shifts: 0,
             last_action: None,
@@ -37,6 +45,12 @@ impl SessionState {
         } else if let Some(mut dir) = dirs::state_dir() {
             dir.push("realshifter");
             dir.join("state.json")
+        } else if let Some(mut dir) = dirs::data_dir() {
+            dir.push("realshifter");
+            dir.join("state.json")
+        } else if let Some(mut dir) = dirs::config_dir() {
+            dir.push("realshifter");
+            dir.join("state.json")
         } else {
             PathBuf::from("/tmp/realshifter-state.json")
         }
@@ -47,7 +61,9 @@ impl SessionState {
         if let Ok(contents) = fs::read_to_string(&path) {
             match serde_json::from_str::<SessionState>(&contents) {
                 Ok(st) => return st,
-                Err(_) => eprintln!("Warning: Failed to parse state.json, using default session state."),
+                Err(_) => {
+                    eprintln!("Warning: Failed to parse state.json, using default session state.")
+                }
             }
         }
         Self::default()
@@ -62,17 +78,35 @@ impl SessionState {
         fs::write(path, json).map_err(|e| e.to_string())
     }
 
-    pub fn record_shift(&mut self, new_gear: GearPosition, action_label: Option<String>) {
-        self.current_gear = new_gear;
-        let count = self.shift_counts.entry(new_gear).or_insert(0);
+    pub fn record_shift(&mut self, gear: GearPosition, action_label: Option<String>) {
+        self.current_gear = gear;
+        let count = self.shift_counts.entry(gear).or_insert(0);
         *count += 1;
         self.total_shifts += 1;
+
         if let Some(label) = action_label {
             self.last_action = Some(label);
             self.last_action_timestamp = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .ok()
                 .map(|d| d.as_secs());
+        }
+    }
+
+    pub fn update_active_profile(
+        &mut self,
+        new_profile: crate::CliProfile,
+        target_pane: Option<String>,
+    ) {
+        self.active_profile = new_profile;
+        if let Some(target) = target_pane {
+            if !target.is_empty() && target != "active" {
+                self.pinned_pane_id = Some(target);
+            } else {
+                self.pinned_pane_id = None;
+            }
+        } else {
+            self.pinned_pane_id = None;
         }
     }
 }

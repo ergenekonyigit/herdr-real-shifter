@@ -1,4 +1,6 @@
-use realshifter_core::{CliProfile, Config, GearActionType, GearMapping, GearPosition, SessionState};
+use realshifter_core::{
+    CliProfile, Config, GearActionType, GearMapping, GearPosition, ReasoningEffort, SessionState,
+};
 use std::fs;
 use std::process::Command;
 use std::time::SystemTime;
@@ -45,10 +47,41 @@ pub struct EditState {
     pub gear: GearPosition,
     pub action_type: GearActionType,
     pub selected_model_id: String,
-    pub selected_effort: String,
+    pub selected_effort: Option<ReasoningEffort>,
     pub custom_command: String,
     pub label: String,
     pub focused_field: EditField,
+}
+
+impl EditState {
+    pub fn from_mapping(
+        gear: GearPosition,
+        profile: CliProfile,
+        mapping: Option<&GearMapping>,
+    ) -> Self {
+        if let Some(m) = mapping {
+            let (m_id, eff) = parse_model_flag_parts(m.model_flag.as_deref().unwrap_or(""));
+            Self {
+                gear,
+                action_type: m.action_type,
+                selected_model_id: m_id,
+                selected_effort: eff,
+                custom_command: m.command.clone(),
+                label: m.label.clone(),
+                focused_field: EditField::ActionType,
+            }
+        } else {
+            Self {
+                gear,
+                action_type: GearActionType::from_profile(profile),
+                selected_model_id: String::new(),
+                selected_effort: None,
+                custom_command: String::new(),
+                label: format!("{} {}", profile.display_name(), gear.display_name()),
+                focused_field: EditField::ActionType,
+            }
+        }
+    }
 }
 
 pub struct App {
@@ -98,6 +131,7 @@ impl App {
         let st_mtime = fs::metadata(&st_path).and_then(|m| m.modified()).ok();
         if st_mtime != self.last_state_mtime || self.last_state_mtime.is_none() {
             self.state = SessionState::load();
+            self.active_profile = self.state.active_profile;
             self.last_state_mtime = st_mtime;
         }
     }
@@ -148,6 +182,20 @@ impl App {
 
     pub fn set_view_as_active_profile(&mut self) {
         self.active_profile = self.view_profile;
+        self.state.active_profile = self.view_profile;
+        self.state.pinned_pane_id = None;
+        let _ = self.state.save();
+
+        let service = realshifter_core::PaneAutomationService::default();
+        let target = service.resolve_target_pane();
+        if !target.is_empty() && target != "active" {
+            self.state.pinned_pane_id = Some(target.clone());
+        }
+
+        if let Err(e) = self.state.save() {
+            eprintln!("Failed to save state: {e}");
+        }
+
         let action_bin = realshifter_core::action_binary_path();
         let _ = Command::new(action_bin)
             .arg("profile")
@@ -155,7 +203,10 @@ impl App {
             .arg(self.active_profile.file_name().replace(".json", ""))
             .spawn();
 
-        self.status_message = format!("Active profile set to {}", self.active_profile.display_name());
+        self.status_message = format!(
+            "Active profile set to {}",
+            self.active_profile.display_name()
+        );
     }
 
     pub fn shift_gear(&mut self, gear: GearPosition) {
@@ -163,7 +214,7 @@ impl App {
 
         let label = self
             .config
-            .get_mapping(self.view_profile, gear)
+            .get_mapping(self.active_profile, gear)
             .map(|m| m.display_label());
 
         self.state.record_shift(gear, label);
@@ -184,29 +235,16 @@ impl App {
         let gear = self.selected_gear();
         let mapping = self.config.get_mapping(self.view_profile, gear);
 
-        let (action_type, model_id, effort, custom_cmd, label) = if let Some(m) = mapping {
-            let (m_id, eff) = parse_model_flag_parts(m.model_flag.as_deref().unwrap_or(""));
-            (m.action_type, m_id, eff, m.command, m.label)
-        } else {
-            (
-                GearActionType::from_profile(self.view_profile),
-                String::new(),
-                String::new(),
-                String::new(),
-                format!("{} {}", self.view_profile.display_name(), gear.display_name()),
-            )
-        };
-
-        self.edit_state = Some(EditState {
+        self.edit_state = Some(EditState::from_mapping(
             gear,
-            action_type,
-            selected_model_id: model_id,
-            selected_effort: effort,
-            custom_command: custom_cmd,
-            label,
-            focused_field: EditField::ActionType,
-        });
-        self.status_message = format!("Editing {} for {}", gear.full_name(), self.view_profile.display_name());
+            self.view_profile,
+            mapping.as_ref(),
+        ));
+        self.status_message = format!(
+            "Editing {} for {}",
+            gear.full_name(),
+            self.view_profile.display_name()
+        );
     }
 
     pub fn cancel_editing(&mut self) {
@@ -217,8 +255,8 @@ impl App {
     pub fn save_editing(&mut self) {
         if let Some(es) = self.edit_state.take() {
             let model_flag = if !es.selected_model_id.is_empty() {
-                if !es.selected_effort.is_empty() {
-                    Some(format!("{}-{}", es.selected_model_id, es.selected_effort))
+                if let Some(eff) = es.selected_effort {
+                    Some(format!("{}-{}", es.selected_model_id, eff.as_str()))
                 } else {
                     Some(es.selected_model_id.clone())
                 }
@@ -255,7 +293,10 @@ impl App {
     pub fn cycle_edit_action_type(&mut self) {
         if let Some(ref mut es) = self.edit_state {
             let actions = GearActionType::all();
-            let idx = actions.iter().position(|a| *a == es.action_type).unwrap_or(0);
+            let idx = actions
+                .iter()
+                .position(|a| *a == es.action_type)
+                .unwrap_or(0);
             es.action_type = actions[(idx + 1) % actions.len()];
         }
     }
@@ -290,9 +331,12 @@ impl App {
 
     pub fn cycle_edit_effort(&mut self) {
         if let Some(ref mut es) = self.edit_state {
-            let levels = ["", "low", "medium", "high"];
-            let idx = levels.iter().position(|l| *l == es.selected_effort).unwrap_or(0);
-            es.selected_effort = levels[(idx + 1) % levels.len()].to_string();
+            es.selected_effort = match es.selected_effort {
+                None => Some(ReasoningEffort::Low),
+                Some(ReasoningEffort::Low) => Some(ReasoningEffort::Medium),
+                Some(ReasoningEffort::Medium) => Some(ReasoningEffort::High),
+                Some(ReasoningEffort::High) => None,
+            };
         }
     }
 
@@ -309,8 +353,12 @@ impl App {
     pub fn handle_edit_backspace(&mut self) {
         if let Some(ref mut es) = self.edit_state {
             match es.focused_field {
-                EditField::CustomCommand => { es.custom_command.pop(); },
-                EditField::Label => { es.label.pop(); },
+                EditField::CustomCommand => {
+                    es.custom_command.pop();
+                }
+                EditField::Label => {
+                    es.label.pop();
+                }
                 _ => {}
             }
         }
@@ -329,18 +377,28 @@ impl App {
             self.show_models_modal = false;
         }
     }
+
+    pub fn theme(&self) -> realshifter_core::Theme {
+        realshifter_core::Theme::from_mode(self.config.theme_mode)
+    }
+
+    pub fn toggle_theme(&mut self) {
+        self.config.theme_mode = self.config.theme_mode.next();
+        self.status_message = format!("Theme: {}", self.config.theme_mode.display_name());
+        let _ = self.config.save();
+    }
 }
 
-fn parse_model_flag_parts(flag: &str) -> (String, String) {
+fn parse_model_flag_parts(flag: &str) -> (String, Option<ReasoningEffort>) {
     if flag.is_empty() {
-        return (String::new(), String::new());
+        return (String::new(), None);
     }
     if let Some((base, eff)) = flag.rsplit_once('-') {
-        if matches!(eff, "low" | "medium" | "high") {
-            return (base.to_string(), eff.to_string());
+        if let Some(effort) = ReasoningEffort::from_str(eff) {
+            return (base.to_string(), Some(effort));
         }
     }
-    (flag.to_string(), String::new())
+    (flag.to_string(), None)
 }
 
 #[cfg(test)]
@@ -368,14 +426,17 @@ mod tests {
         app.start_editing_selected_gear();
         assert!(app.edit_state.is_some());
         let es = app.edit_state.as_mut().unwrap();
-        es.selected_model_id = "gemini-3.6-flash".to_string();
-        es.selected_effort = "high".to_string();
+        es.selected_model_id = "gemini-3.7-flash".to_string();
+        es.selected_effort = Some(ReasoningEffort::High);
 
         app.save_editing();
         assert!(app.edit_state.is_none());
 
-        let mapping = app.config.get_mapping(CliProfile::AgyCli, GearPosition::Neutral).unwrap();
-        assert_eq!(mapping.model_flag.as_deref(), Some("gemini-3.6-flash-high"));
+        let mapping = app
+            .config
+            .get_mapping(CliProfile::AgyCli, GearPosition::Neutral)
+            .unwrap();
+        assert_eq!(mapping.model_flag.as_deref(), Some("gemini-3.7-flash-high"));
 
         app.toggle_help_modal();
         assert!(app.show_help_modal);

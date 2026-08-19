@@ -58,20 +58,56 @@ impl GearMapping {
                 }
             }
             GearActionType::ClaudeCode => {
-                let base_cmd = if self.command.trim().is_empty() {
-                    "claude"
-                } else {
-                    self.command.trim()
-                };
+                let cmd_trimmed = self.command.trim();
                 if let Some(ref flag) = self.model_flag {
                     let flag_trimmed = flag.trim();
-                    if !flag_trimmed.is_empty() && !base_cmd.contains("--model") {
-                        format!("{base_cmd} --model {flag_trimmed}")
+                    if cmd_trimmed.is_empty() || cmd_trimmed == "/model" || cmd_trimmed == "claude" {
+                        format!("/model {flag_trimmed}")
+                    } else if !cmd_trimmed.contains("/model") {
+                        format!("/model {flag_trimmed}")
                     } else {
-                        base_cmd.to_string()
+                        cmd_trimmed.to_string()
                     }
+                } else if cmd_trimmed.is_empty() {
+                    self.action_type.default_command().to_string()
                 } else {
-                    base_cmd.to_string()
+                    cmd_trimmed.to_string()
+                }
+            }
+            GearActionType::OpenCodeCli => {
+                let cmd_trimmed = self.command.trim();
+                if let Some(ref flag) = self.model_flag {
+                    let flag_trimmed = flag.trim();
+                    if cmd_trimmed.is_empty() || cmd_trimmed == "/model" || cmd_trimmed == "/models"
+                    {
+                        format!("/models {flag_trimmed}")
+                    } else if !cmd_trimmed.contains("--model") && !cmd_trimmed.contains("-m") {
+                        format!("{cmd_trimmed} --model {flag_trimmed}")
+                    } else {
+                        cmd_trimmed.to_string()
+                    }
+                } else if !cmd_trimmed.is_empty() {
+                    cmd_trimmed.to_string()
+                } else {
+                    self.action_type.default_command().to_string()
+                }
+            }
+            GearActionType::Pi => {
+                let cmd_trimmed = self.command.trim();
+                if let Some(ref flag) = self.model_flag {
+                    let flag_trimmed = flag.trim();
+                    if cmd_trimmed.is_empty() || cmd_trimmed == "/model" || cmd_trimmed == "/models"
+                    {
+                        format!("/model {flag_trimmed}")
+                    } else if !cmd_trimmed.contains("--model") && !cmd_trimmed.contains("-m") {
+                        format!("{cmd_trimmed} --model {flag_trimmed}")
+                    } else {
+                        cmd_trimmed.to_string()
+                    }
+                } else if !cmd_trimmed.is_empty() {
+                    cmd_trimmed.to_string()
+                } else {
+                    self.action_type.default_command().to_string()
                 }
             }
             GearActionType::CustomHotkey => self.command.trim().to_string(),
@@ -123,17 +159,20 @@ mod tests {
             "Claude Sonnet",
             true,
         );
-        assert_eq!(mapping.effective_command(), "claude --model sonnet");
+        assert_eq!(mapping.effective_command(), "/model sonnet");
 
         let claude_with_existing_flag = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::ClaudeCode,
-            "claude --model opus",
+            "/model opus",
             Some("sonnet"),
             "",
             true,
         );
-        assert_eq!(claude_with_existing_flag.effective_command(), "claude --model opus");
+        assert_eq!(
+            claude_with_existing_flag.effective_command(),
+            "/model opus"
+        );
 
         let claude_default = GearMapping::new(
             GearPosition::Gear1,
@@ -143,47 +182,59 @@ mod tests {
             "",
             true,
         );
-        assert_eq!(claude_default.effective_command(), "claude");
+        assert_eq!(claude_default.effective_command(), "/model sonnet");
 
         let agy_slash_mapping = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
             "",
-            Some("gemini-3.6-flash-low"),
-            "Gemini 3.6 Flash (Low)",
+            Some("gemini-3.7-flash-low"),
+            "Gemini 3.7 Flash (Low)",
             true,
         );
-        assert_eq!(agy_slash_mapping.effective_command(), "/model gemini-3.6-flash-low");
+        assert_eq!(
+            agy_slash_mapping.effective_command(),
+            "/model gemini-3.7-flash-low"
+        );
 
         let agy_slash_explicit = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
             "/model",
-            Some("gemini-3.6-flash-low"),
+            Some("gemini-3.7-flash-low"),
             "",
             true,
         );
-        assert_eq!(agy_slash_explicit.effective_command(), "/model gemini-3.6-flash-low");
+        assert_eq!(
+            agy_slash_explicit.effective_command(),
+            "/model gemini-3.7-flash-low"
+        );
 
         let agy_cli_mapping = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
             "agy",
-            Some("gemini-3.6-flash-low"),
-            "Gemini 3.6 Flash (Low)",
+            Some("gemini-3.7-flash-low"),
+            "Gemini 3.7 Flash (Low)",
             true,
         );
-        assert_eq!(agy_cli_mapping.effective_command(), "agy --model gemini-3.6-flash-low");
+        assert_eq!(
+            agy_cli_mapping.effective_command(),
+            "agy --model gemini-3.7-flash-low"
+        );
 
         let agy_cli_existing = GearMapping::new(
             GearPosition::Gear1,
             GearActionType::AgyCli,
             "agy --model gemini-3.5-flash",
-            Some("gemini-3.6-flash-low"),
+            Some("gemini-3.7-flash-low"),
             "",
             true,
         );
-        assert_eq!(agy_cli_existing.effective_command(), "agy --model gemini-3.5-flash");
+        assert_eq!(
+            agy_cli_existing.effective_command(),
+            "agy --model gemini-3.5-flash"
+        );
 
         let agy_no_flag_with_cmd = GearMapping::new(
             GearPosition::Gear1,
@@ -203,7 +254,10 @@ mod tests {
             "",
             true,
         );
-        assert_eq!(agy_empty_default.effective_command(), "agy --model gemini-3.6-flash");
+        assert_eq!(
+            agy_empty_default.effective_command(),
+            "agy"
+        );
 
         let custom_hotkey = GearMapping::new(
             GearPosition::Gear1,

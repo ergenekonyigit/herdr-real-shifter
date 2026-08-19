@@ -8,10 +8,11 @@ pub enum GearActionType {
     ClaudeCode,
     CodexCli,
     OpenCodeCli,
+    Pi,
     AgyCli,
     CustomCommand,
     CustomHotkey,
-    Rollback,
+    NewSession,
 }
 
 impl GearActionType {
@@ -20,10 +21,11 @@ impl GearActionType {
             GearActionType::ClaudeCode => "Claude Code",
             GearActionType::CodexCli => "Codex CLI",
             GearActionType::OpenCodeCli => "OpenCode CLI",
+            GearActionType::Pi => "Pi Agent",
             GearActionType::AgyCli => "Antigravity CLI",
             GearActionType::CustomCommand => "Custom Command",
             GearActionType::CustomHotkey => "Custom Hotkey",
-            GearActionType::Rollback => "Rollback / Undo",
+            GearActionType::NewSession => "New Session (Tab)",
         }
     }
 
@@ -32,22 +34,24 @@ impl GearActionType {
             GearActionType::ClaudeCode => "🧠",
             GearActionType::CodexCli => "💻",
             GearActionType::OpenCodeCli => "⚡",
+            GearActionType::Pi => "π",
             GearActionType::AgyCli => "🛸",
             GearActionType::CustomCommand => "🛠️",
             GearActionType::CustomHotkey => "⌨️",
-            GearActionType::Rollback => "↺",
+            GearActionType::NewSession => "📑",
         }
     }
 
     pub fn default_command(&self) -> &'static str {
         match self {
-            GearActionType::ClaudeCode => "claude --model sonnet",
+            GearActionType::ClaudeCode => "/model sonnet",
             GearActionType::CodexCli => "codex",
             GearActionType::OpenCodeCli => "opencode",
-            GearActionType::AgyCli => "agy --model gemini-3.6-flash",
+            GearActionType::Pi => "pi",
+            GearActionType::AgyCli => "agy",
             GearActionType::CustomCommand => "echo 'Custom command'",
             GearActionType::CustomHotkey => "",
-            GearActionType::Rollback => "/undo",
+            GearActionType::NewSession => "",
         }
     }
 
@@ -57,9 +61,10 @@ impl GearActionType {
             GearActionType::ClaudeCode,
             GearActionType::CodexCli,
             GearActionType::OpenCodeCli,
+            GearActionType::Pi,
             GearActionType::CustomCommand,
             GearActionType::CustomHotkey,
-            GearActionType::Rollback,
+            GearActionType::NewSession,
         ]
     }
 
@@ -69,6 +74,7 @@ impl GearActionType {
             CliProfile::ClaudeCode => GearActionType::ClaudeCode,
             CliProfile::CodexCli => GearActionType::CodexCli,
             CliProfile::OpenCodeCli => GearActionType::OpenCodeCli,
+            CliProfile::Pi => GearActionType::Pi,
             CliProfile::Custom => GearActionType::CustomCommand,
         }
     }
@@ -88,10 +94,20 @@ impl FromStr for GearActionType {
             "claudecode" | "claude code" | "claude" => Ok(GearActionType::ClaudeCode),
             "codexcli" | "codex cli" | "codex" => Ok(GearActionType::CodexCli),
             "opencodecli" | "opencode cli" | "opencode" => Ok(GearActionType::OpenCodeCli),
-            "agycli" | "agy cli" | "agy" | "antigravity" | "antigravity cli" => Ok(GearActionType::AgyCli),
-            "customcommand" | "custom command" | "custom_command" => Ok(GearActionType::CustomCommand),
+            "pi" | "piagent" | "pi agent" | "pi coding agent" | "π" => Ok(GearActionType::Pi),
+            "agycli" | "agy cli" | "agy" | "antigravity" | "antigravity cli" => {
+                Ok(GearActionType::AgyCli)
+            }
+            "customcommand" | "custom command" | "custom_command" => {
+                Ok(GearActionType::CustomCommand)
+            }
             "customhotkey" | "custom hotkey" | "custom_hotkey" => Ok(GearActionType::CustomHotkey),
-            "rollback" | "rollback / undo" | "undo" => Ok(GearActionType::Rollback),
+            "newsession"
+            | "new session"
+            | "new_session"
+            | "tab"
+            | "new tab"
+            | "new-session" => Ok(GearActionType::NewSession),
             _ => Err(format!("Unknown action type: '{s}'")),
         }
     }
@@ -107,10 +123,11 @@ mod tests {
             GearActionType::ClaudeCode,
             GearActionType::CodexCli,
             GearActionType::OpenCodeCli,
+            GearActionType::Pi,
             GearActionType::AgyCli,
             GearActionType::CustomCommand,
             GearActionType::CustomHotkey,
-            GearActionType::Rollback,
+            GearActionType::NewSession,
         ];
 
         for t in types {
@@ -119,21 +136,57 @@ mod tests {
             assert!(!format!("{t}").is_empty());
         }
 
-        assert_eq!(GearActionType::ClaudeCode.default_command(), "claude --model sonnet");
+        assert_eq!(
+            GearActionType::ClaudeCode.default_command(),
+            "/model sonnet"
+        );
         assert_eq!(GearActionType::CodexCli.default_command(), "codex");
         assert_eq!(GearActionType::OpenCodeCli.default_command(), "opencode");
-        assert_eq!(GearActionType::AgyCli.default_command(), "agy --model gemini-3.6-flash");
-        assert_eq!(GearActionType::CustomCommand.default_command(), "echo 'Custom command'");
+        assert_eq!(GearActionType::Pi.default_command(), "pi");
+        assert_eq!(GearActionType::AgyCli.default_command(), "agy");
+        assert_eq!(
+            GearActionType::CustomCommand.default_command(),
+            "echo 'Custom command'"
+        );
         assert_eq!(GearActionType::CustomHotkey.default_command(), "");
-        assert_eq!(GearActionType::Rollback.default_command(), "/undo");
+        assert_eq!(GearActionType::NewSession.default_command(), "");
 
-        assert_eq!("claude".parse::<GearActionType>().unwrap(), GearActionType::ClaudeCode);
-        assert_eq!("codex".parse::<GearActionType>().unwrap(), GearActionType::CodexCli);
-        assert_eq!("opencode".parse::<GearActionType>().unwrap(), GearActionType::OpenCodeCli);
-        assert_eq!("agy".parse::<GearActionType>().unwrap(), GearActionType::AgyCli);
-        assert_eq!("custom command".parse::<GearActionType>().unwrap(), GearActionType::CustomCommand);
-        assert_eq!("custom hotkey".parse::<GearActionType>().unwrap(), GearActionType::CustomHotkey);
-        assert_eq!("undo".parse::<GearActionType>().unwrap(), GearActionType::Rollback);
+        assert_eq!(
+            "claude".parse::<GearActionType>().unwrap(),
+            GearActionType::ClaudeCode
+        );
+        assert_eq!(
+            "codex".parse::<GearActionType>().unwrap(),
+            GearActionType::CodexCli
+        );
+        assert_eq!(
+            "opencode".parse::<GearActionType>().unwrap(),
+            GearActionType::OpenCodeCli
+        );
+        assert_eq!(
+            "pi".parse::<GearActionType>().unwrap(),
+            GearActionType::Pi
+        );
+        assert_eq!(
+            "π".parse::<GearActionType>().unwrap(),
+            GearActionType::Pi
+        );
+        assert_eq!(
+            "agy".parse::<GearActionType>().unwrap(),
+            GearActionType::AgyCli
+        );
+        assert_eq!(
+            "custom command".parse::<GearActionType>().unwrap(),
+            GearActionType::CustomCommand
+        );
+        assert_eq!(
+            "custom hotkey".parse::<GearActionType>().unwrap(),
+            GearActionType::CustomHotkey
+        );
+        assert_eq!(
+            "new tab".parse::<GearActionType>().unwrap(),
+            GearActionType::NewSession
+        );
 
         assert!("invalid_type".parse::<GearActionType>().is_err());
     }

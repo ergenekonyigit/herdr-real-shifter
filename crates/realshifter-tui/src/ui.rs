@@ -1,14 +1,16 @@
 use crate::app::{App, EditField};
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Tabs},
-    Frame,
 };
-use realshifter_core::{gear_color, CliProfile, GearPosition};
+use realshifter_core::{CliProfile, GearPosition, Theme};
 
 pub fn draw(f: &mut Frame, app: &mut App) {
+    let theme = app.theme();
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
@@ -20,49 +22,51 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         ])
         .split(f.area());
 
-    draw_header(f, app, chunks[0]);
-    draw_profile_bar(f, app, chunks[1]);
-    draw_gear_grid(f, app, chunks[2]);
-    draw_status_bar(f, app, chunks[3]);
+    draw_header(f, app, &theme, chunks[0]);
+    draw_profile_bar(f, app, &theme, chunks[1]);
+    draw_gear_grid(f, app, &theme, chunks[2]);
+    draw_status_bar(f, app, &theme, chunks[3]);
 
     if app.show_models_modal {
-        draw_models_modal(f, app);
+        draw_models_modal(f, app, &theme);
     } else if app.show_help_modal {
-        draw_help_modal(f, app);
+        draw_help_modal(f, app, &theme);
     } else if app.edit_state.is_some() {
-        draw_edit_modal(f, app);
+        draw_edit_modal(f, app, &theme);
     }
 }
 
-fn draw_header(f: &mut Frame, app: &App, area: Rect) {
+fn draw_header(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
     let is_same_active = app.view_profile == app.active_profile;
     let active_status_span = if is_same_active {
         Span::styled(
             format!(" 🟢 ACTIVE: {} ", app.active_profile.display_name()),
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+            theme.active_badge,
         )
     } else {
         Span::styled(
-            format!(" 👁️ VIEWING: {} (Active: {}) ", app.view_profile.display_name(), app.active_profile.display_name()),
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            format!(
+                " 👁️ VIEWING: {} (Active: {}) ",
+                app.view_profile.display_name(),
+                app.active_profile.display_name()
+            ),
+            theme.viewing_badge,
         )
     };
 
+    let theme_badge = format!(" [Theme: {}] ", app.config.theme_mode.display_name());
+
     let header_text = vec![Line::from(vec![
-        Span::styled(
-            " RealShifter ",
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled("v0.1.0 ", Style::default().fg(Color::DarkGray)),
+        Span::styled(" RealShifter ", theme.title),
+        Span::styled("v0.1.0 ", theme.secondary_text),
+        Span::styled(theme_badge, theme.secondary_text),
         Span::raw(" | "),
         active_status_span,
         Span::raw(" | Current Gear: "),
         Span::styled(
             format!(" [{}] ", app.state.current_gear.display_name()),
             Style::default()
-                .fg(gear_color(app.state.current_gear))
+                .fg(theme.gear_color(app.state.current_gear))
                 .add_modifier(Modifier::BOLD),
         ),
     ])];
@@ -70,20 +74,29 @@ fn draw_header(f: &mut Frame, app: &App, area: Rect) {
     let header = Paragraph::new(header_text).block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan))
+            .border_style(Style::default().fg(theme.header_border))
             .title(" RealShifter Dashboard "),
     );
 
     f.render_widget(header, area);
 }
 
-fn draw_profile_bar(f: &mut Frame, app: &App, area: Rect) {
+fn draw_profile_bar(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
     let profiles = CliProfile::all();
     let titles: Vec<Line> = profiles
         .iter()
         .map(|p| {
-            let active_mark = if *p == app.active_profile { "🟢 " } else { "" };
-            Line::from(format!("{}{} {}", active_mark, p.icon_symbol(), p.display_name()))
+            let active_mark = if *p == app.active_profile {
+                "🟢 "
+            } else {
+                ""
+            };
+            Line::from(format!(
+                "{}{} {}",
+                active_mark,
+                p.icon_symbol(),
+                p.display_name()
+            ))
         })
         .collect();
 
@@ -96,22 +109,27 @@ fn draw_profile_bar(f: &mut Frame, app: &App, area: Rect) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme.border))
                 .title(" Profile View [Press 'h/l' or 'p' to switch | 'Space' to set Active] "),
         )
-        .highlight_style(
-            Style::default()
-                .fg(Color::Green)
-                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-        )
+        .highlight_style(theme.tab_highlight)
         .select(selected_index);
 
     f.render_widget(tabs, area);
 }
 
-fn draw_gear_grid(f: &mut Frame, app: &App, area: Rect) {
-    let header_cells = ["", "Gear", "Action Type", "Label", "Command / Flag", "Shifts", "Status"]
-        .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
+fn draw_gear_grid(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
+    let header_cells = [
+        "",
+        "Gear",
+        "Action Type",
+        "Label",
+        "Command / Flag",
+        "Shifts",
+        "Status",
+    ]
+    .iter()
+    .map(|h| Cell::from(*h).style(theme.header_cell));
     let header = Row::new(header_cells).height(1).bottom_margin(1);
 
     let active_profile = app.view_profile;
@@ -122,16 +140,23 @@ fn draw_gear_grid(f: &mut Frame, app: &App, area: Rect) {
         let mapping = app.config.get_mapping(active_profile, *gear);
 
         let pointer_cell = if is_selected {
-            Cell::from("▶").style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+            Cell::from("▶").style(theme.title)
         } else {
             Cell::from(" ")
         };
 
-        let gear_cell = Cell::from(format!(" {} ", gear.display_name()))
-            .style(Style::default().fg(gear_color(*gear)).add_modifier(Modifier::BOLD));
+        let gear_cell = Cell::from(format!(" {} ", gear.display_name())).style(
+            Style::default()
+                .fg(theme.gear_color(*gear))
+                .add_modifier(Modifier::BOLD),
+        );
 
         let action_cell = match mapping {
-            Some(ref m) => Cell::from(format!("{} {}", m.action_type.icon_symbol(), m.action_type.display_name())),
+            Some(ref m) => Cell::from(format!(
+                "{} {}",
+                m.action_type.icon_symbol(),
+                m.action_type.display_name()
+            )),
             None => Cell::from("—"),
         };
 
@@ -149,17 +174,17 @@ fn draw_gear_grid(f: &mut Frame, app: &App, area: Rect) {
         let count_cell = Cell::from(count.to_string());
 
         let status_cell = if is_current {
-            Cell::from(" 🟢 ENGAGED ").style(Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
+            Cell::from(" 🟢 ENGAGED ").style(theme.active_badge)
         } else {
-            Cell::from("  idle  ").style(Style::default().fg(Color::DarkGray))
+            Cell::from("  idle  ").style(theme.idle_badge)
         };
 
         let row_style = if is_selected {
-            Style::default().bg(Color::Rgb(40, 50, 70))
+            theme.selected_row
         } else if is_current {
-            Style::default().bg(Color::Rgb(20, 40, 30))
+            theme.current_row
         } else {
-            Style::default()
+            theme.normal_row
         };
 
         Row::new(vec![
@@ -190,44 +215,59 @@ fn draw_gear_grid(f: &mut Frame, app: &App, area: Rect) {
     .block(
         Block::default()
             .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme.border))
             .title(" Gear Mapping Status Grid [Use 'j/k' to select, 'Enter/e' to edit] "),
     );
 
     f.render_widget(table, area);
 }
 
-fn draw_status_bar(f: &mut Frame, app: &App, area: Rect) {
-    let last_action_text = app
-        .state
-        .last_action
-        .as_deref()
-        .unwrap_or("None");
+fn draw_status_bar(f: &mut Frame, app: &App, theme: &Theme, area: Rect) {
+    let last_action_text = app.state.last_action.as_deref().unwrap_or("None");
 
     let text = vec![
         Line::from(vec![
             Span::raw("Last Action: "),
-            Span::styled(last_action_text, Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD)),
+            Span::styled(last_action_text, theme.accent_cyan),
             Span::raw(" | Total Shifts: "),
-            Span::styled(app.state.total_shifts.to_string(), Style::default().fg(Color::Yellow)),
+            Span::styled(app.state.total_shifts.to_string(), theme.title),
             Span::raw(" | Status: "),
-            Span::styled(&app.status_message, Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled(&app.status_message, theme.accent_green),
         ]),
         Line::from(vec![
-            Span::styled("Controls: ", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
-            Span::raw("[j/k]: Nav | [h/l/p]: Tab | [Space]: Set Active | [e/Enter]: Edit | [1-6]: Shift | [m]: Models | [?]: Help | [q]: Exit"),
+            Span::styled("Controls: ", theme.title),
+            Span::styled("[j/k]:", theme.accent_cyan),
+            Span::raw(" Nav | "),
+            Span::styled("[h/l/p]:", theme.accent_cyan),
+            Span::raw(" Tab | "),
+            Span::styled("[Space]:", theme.accent_cyan),
+            Span::raw(" Active | "),
+            Span::styled("[e/Enter]:", theme.accent_cyan),
+            Span::raw(" Edit | "),
+            Span::styled("[t]:", theme.accent_cyan),
+            Span::raw(" Theme | "),
+            Span::styled("[1-6/r/n]:", theme.accent_cyan),
+            Span::raw(" Shift | "),
+            Span::styled("[m]:", theme.accent_cyan),
+            Span::raw(" Models | "),
+            Span::styled("[?]:", theme.accent_cyan),
+            Span::raw(" Help | "),
+            Span::styled("[q]:", theme.accent_cyan),
+            Span::raw(" Exit"),
         ]),
     ];
 
     let paragraph = Paragraph::new(text).block(
         Block::default()
             .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme.border))
             .title(" Status & Controls "),
     );
 
     f.render_widget(paragraph, area);
 }
 
-fn draw_edit_modal(f: &mut Frame, app: &App) {
+fn draw_edit_modal(f: &mut Frame, app: &App, theme: &Theme) {
     let es = match app.edit_state.as_ref() {
         Some(s) => s,
         None => return,
@@ -248,8 +288,13 @@ fn draw_edit_modal(f: &mut Frame, app: &App) {
 
     let main_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Yellow))
-        .title(format!(" Edit Mapping: {} ({}) ", es.gear.full_name(), app.view_profile.display_name()));
+        .border_style(Style::default().fg(theme.modal_border))
+        .style(theme.normal_row)
+        .title(format!(
+            " Edit Mapping: {} ({}) ",
+            es.gear.full_name(),
+            app.view_profile.display_name()
+        ));
 
     f.render_widget(main_block, popup_area);
 
@@ -268,18 +313,22 @@ fn draw_edit_modal(f: &mut Frame, app: &App) {
 
     let field_style = |field: EditField| {
         if es.focused_field == field {
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            theme.modal_field_focused
         } else {
-            Style::default().fg(Color::White)
+            theme.modal_field_unfocused
         }
     };
 
     // 1. Action Type
-    let action_str = format!(" {} {}", es.action_type.icon_symbol(), es.action_type.display_name());
+    let action_str = format!(
+        " {} {}",
+        es.action_type.icon_symbol(),
+        es.action_type.display_name()
+    );
     let p_action = Paragraph::new(Line::from(vec![
         Span::styled("Action Type: ", field_style(EditField::ActionType)),
-        Span::styled(action_str, Style::default().fg(Color::Cyan)),
-        Span::raw(" (Use Left/Right to cycle)"),
+        Span::styled(action_str, theme.accent_cyan),
+        Span::styled(" (Use Left/Right to cycle)", theme.secondary_text),
     ]));
     f.render_widget(p_action, inner_chunks[0]);
 
@@ -291,21 +340,24 @@ fn draw_edit_modal(f: &mut Frame, app: &App) {
     };
     let p_model = Paragraph::new(Line::from(vec![
         Span::styled("Model Target: ", field_style(EditField::Model)),
-        Span::styled(model_display, Style::default().fg(Color::Green)),
-        Span::raw(" (Use Left/Right to cycle from snapshot)"),
+        Span::styled(model_display, theme.accent_green),
+        Span::styled(
+            " (Use Left/Right to cycle from snapshot)",
+            theme.secondary_text,
+        ),
     ]));
     f.render_widget(p_model, inner_chunks[1]);
 
     // 3. Effort Level
-    let effort_display = if es.selected_effort.is_empty() {
-        " [N/A or None] ".to_string()
+    let effort_display = if let Some(eff) = es.selected_effort {
+        format!(" {} ", eff.display_name())
     } else {
-        format!(" {} ", es.selected_effort)
+        " [N/A or None] ".to_string()
     };
     let p_effort = Paragraph::new(Line::from(vec![
         Span::styled("Reasoning Effort: ", field_style(EditField::Effort)),
-        Span::styled(effort_display, Style::default().fg(Color::Magenta)),
-        Span::raw(" (low / medium / high)"),
+        Span::styled(effort_display, theme.accent_magenta),
+        Span::styled(" (Low / Medium / High)", theme.secondary_text),
     ]));
     f.render_widget(p_effort, inner_chunks[2]);
 
@@ -317,7 +369,7 @@ fn draw_edit_modal(f: &mut Frame, app: &App) {
     };
     let p_cmd = Paragraph::new(Line::from(vec![
         Span::styled("Custom Command: ", field_style(EditField::CustomCommand)),
-        Span::styled(cmd_display, Style::default().fg(Color::White)),
+        Span::styled(cmd_display, theme.primary_text),
     ]));
     f.render_widget(p_cmd, inner_chunks[3]);
 
@@ -329,36 +381,39 @@ fn draw_edit_modal(f: &mut Frame, app: &App) {
     };
     let p_label = Paragraph::new(Line::from(vec![
         Span::styled("Display Label: ", field_style(EditField::Label)),
-        Span::styled(label_display, Style::default().fg(Color::Cyan)),
+        Span::styled(label_display, theme.accent_cyan),
     ]));
     f.render_widget(p_label, inner_chunks[4]);
 
     // 6. Buttons
     let save_style = if es.focused_field == EditField::Save {
-        Style::default().bg(Color::Green).fg(Color::Black).add_modifier(Modifier::BOLD)
+        theme.modal_save_focused
     } else {
-        Style::default().fg(Color::Green)
+        theme.modal_save_unfocused
     };
     let cancel_style = if es.focused_field == EditField::Cancel {
-        Style::default().bg(Color::Red).fg(Color::White).add_modifier(Modifier::BOLD)
+        theme.modal_cancel_focused
     } else {
-        Style::default().fg(Color::Red)
+        theme.modal_cancel_unfocused
     };
 
     let btn_line = Line::from(vec![
         Span::styled(" [ SAVE (Enter) ] ", save_style),
         Span::raw("    "),
         Span::styled(" [ CANCEL (Esc) ] ", cancel_style),
-        Span::raw("     (Use Tab/Up/Down to navigate fields)"),
+        Span::styled(
+            "     (Use Tab/Up/Down to navigate fields)",
+            theme.secondary_text,
+        ),
     ]);
     let p_btn = Paragraph::new(btn_line);
     f.render_widget(p_btn, inner_chunks[5]);
 }
 
-fn draw_help_modal(f: &mut Frame, _app: &App) {
+fn draw_help_modal(f: &mut Frame, _app: &App, theme: &Theme) {
     let area = f.area();
     let modal_width = 75;
-    let modal_height = 18;
+    let modal_height = 19;
 
     let popup_area = Rect {
         x: area.width.saturating_sub(modal_width) / 2,
@@ -370,19 +425,51 @@ fn draw_help_modal(f: &mut Frame, _app: &App) {
     f.render_widget(Clear, popup_area);
 
     let rows = vec![
-        Row::new(vec!["j / k / Up / Down", "Select gear row in mapping grid"]),
-        Row::new(vec!["h / l / p / Left / Right", "Cycle profile view tabs (AGY, Claude, Codex, OpenCode, Custom)"]),
-        Row::new(vec!["Space / a", "Set currently viewed profile as Global Active Profile"]),
-        Row::new(vec!["e / Enter", "Edit mapping for selected gear (opens Interactive Mapping Editor)"]),
-        Row::new(vec!["1 - 6, r, n", "Simulate hardware gear shift (Gear 1-6, Reverse, Neutral)"]),
-        Row::new(vec!["m", "Toggle available LLM models snapshot modal"]),
-        Row::new(vec!["?", "Toggle this Keybindings & Help modal"]),
-        Row::new(vec!["q / Esc", "Close modal or Quit RealShifter TUI"]),
+        Row::new(vec![
+            Cell::from("j / k / Up / Down").style(theme.accent_cyan),
+            Cell::from("Select gear row in mapping grid").style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("h / l / p / Left / Right").style(theme.accent_cyan),
+            Cell::from("Cycle profile view tabs (AGY, Claude, Codex, OpenCode, Custom)")
+                .style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("Space / a").style(theme.accent_cyan),
+            Cell::from("Set currently viewed profile as Global Active Profile")
+                .style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("e / Enter").style(theme.accent_cyan),
+            Cell::from("Edit mapping for selected gear (opens Interactive Mapping Editor)")
+                .style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("t / T").style(theme.accent_cyan),
+            Cell::from("Toggle Theme (Auto / Dark / Light)").style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("1 - 6, r, n").style(theme.accent_cyan),
+            Cell::from("Simulate hardware gear shift (Gear 1-6, Reverse, Neutral)")
+                .style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("m").style(theme.accent_cyan),
+            Cell::from("Toggle available LLM models snapshot modal").style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("?").style(theme.accent_cyan),
+            Cell::from("Toggle this Keybindings & Help modal").style(theme.primary_text),
+        ]),
+        Row::new(vec![
+            Cell::from("q / Esc").style(theme.accent_cyan),
+            Cell::from("Close modal or Quit RealShifter TUI").style(theme.primary_text),
+        ]),
     ];
 
     let header_cells = ["Keybinding", "Action Description"]
         .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
+        .map(|h| Cell::from(*h).style(theme.header_cell));
     let header = Row::new(header_cells).height(1).bottom_margin(1);
 
     let table = Table::new(
@@ -393,14 +480,15 @@ fn draw_help_modal(f: &mut Frame, _app: &App) {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Cyan))
+            .border_style(Style::default().fg(theme.modal_border))
+            .style(theme.normal_row)
             .title(" RealShifter TUI Keybindings & Ergonomics Guide (Press '?' or 'Esc' to close) "),
     );
 
     f.render_widget(table, popup_area);
 }
 
-fn draw_models_modal(f: &mut Frame, app: &App) {
+fn draw_models_modal(f: &mut Frame, app: &App, theme: &Theme) {
     let area = f.area();
     let modal_width = 75;
     let modal_height = 16;
@@ -420,28 +508,31 @@ fn draw_models_modal(f: &mut Frame, app: &App) {
         .get(&app.view_profile)
         .and_then(|p| p.metadata.as_ref())
         .map(|m| m.generated_at.as_str())
-        .unwrap_or("2026-07-27");
+        .unwrap_or("2026-08-19");
     let models = app.config.available_models(app.view_profile);
 
     let header_cells = ["Model ID", "Model Name", "Supported Effort Levels"]
         .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
+        .map(|h| Cell::from(*h).style(theme.header_cell));
     let header = Row::new(header_cells).height(1).bottom_margin(1);
 
     let rows = models.iter().map(|m| {
-        let id_cell = Cell::from(m.id.as_str()).style(Style::default().fg(Color::Green));
-        let name_cell = Cell::from(m.name.as_str()).style(Style::default().fg(Color::White));
+        let id_cell = Cell::from(m.id.as_str()).style(theme.accent_green);
+        let name_cell = Cell::from(m.name.as_str()).style(theme.primary_text);
         let effort_str = if m.effort_levels.is_empty() {
             "N/A".to_string()
         } else {
             m.effort_levels.join(", ")
         };
-        let effort_cell = Cell::from(effort_str).style(Style::default().fg(Color::Cyan));
+        let effort_cell = Cell::from(effort_str).style(theme.accent_cyan);
 
         Row::new(vec![id_cell, name_cell, effort_cell])
     });
 
-    let title_str = format!(" Available LLM Models Snapshot ({}) - Press 'Esc' or 'm' to close ", meta_date);
+    let title_str = format!(
+        " Available LLM Models Snapshot ({}) - Press 'Esc' or 'm' to close ",
+        meta_date
+    );
 
     let table = Table::new(
         rows,
@@ -455,7 +546,8 @@ fn draw_models_modal(f: &mut Frame, app: &App) {
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(Color::Yellow))
+            .border_style(Style::default().fg(theme.modal_border))
+            .style(theme.normal_row)
             .title(title_str),
     );
 
@@ -465,26 +557,33 @@ fn draw_models_modal(f: &mut Frame, app: &App) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ratatui::backend::TestBackend;
     use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+    use realshifter_core::ThemeMode;
 
     #[test]
-    fn test_ui_draw_all_views() {
-        let backend = TestBackend::new(120, 40);
-        let mut terminal = Terminal::new(backend).unwrap();
+    fn test_ui_draw_all_views_dark_and_light() {
+        for mode in [ThemeMode::Dark, ThemeMode::Light, ThemeMode::Auto] {
+            let backend = TestBackend::new(120, 40);
+            let mut terminal = Terminal::new(backend).unwrap();
 
-        let mut app = App::new();
-        terminal.draw(|f| draw(f, &mut app)).unwrap();
+            let mut app = App::new();
+            app.config.theme_mode = mode;
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
 
-        app.show_models_modal = true;
-        terminal.draw(|f| draw(f, &mut app)).unwrap();
+            app.show_models_modal = true;
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
 
-        app.show_models_modal = false;
-        app.show_help_modal = true;
-        terminal.draw(|f| draw(f, &mut app)).unwrap();
+            app.show_models_modal = false;
+            app.show_help_modal = true;
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
 
-        app.show_help_modal = false;
-        app.start_editing_selected_gear();
-        terminal.draw(|f| draw(f, &mut app)).unwrap();
+            app.show_help_modal = false;
+            app.start_editing_selected_gear();
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
+
+            app.toggle_theme();
+            terminal.draw(|f| draw(f, &mut app)).unwrap();
+        }
     }
 }

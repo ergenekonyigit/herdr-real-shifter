@@ -42,10 +42,11 @@ let PAD_BOT: CGFloat = 22
 let contentW = CGFloat(COLS) * charW + PAD_X * 2
 let W = contentW + SHADOW * 2
 
-// Count content rows
-let CONTENT_ROWS = 23  // header(3) + gap(1) + tabs(3) + gap(1) + grid-header(1) + grid-sep(1) + N rows(8) + bot(1) + gap(1) + status(4)
+// Count content rows — generous so bottom border never clips outside window
+let CONTENT_ROWS = 26  // header(3)+gap(1)+tabs(3)+gap(1)+grid(12)+gap(1)+status(4)+bottom-pad(1)
 let contentH = TITLE_H + CGFloat(CONTENT_ROWS) * LH + PAD_BOT
 let H = contentH + SHADOW * 2
+
 
 
 let size = NSSize(width: W, height: H)
@@ -176,7 +177,8 @@ func drawRowAt(idx: Int, gear: String, atype: String, label: String,
     let sc = statColor ?? color
     let yi = Y(idx)
     let lx = SHADOW + PAD_X
-    a("│", BLUE, bold: true).draw(at: CGPoint(x: lx + cBar, y: yi))
+    // Left border: aligns with the '│' at char position 0 of boxRow strings
+    a("│", BLUE, bold: true).draw(at: CGPoint(x: lx, y: yi))
     let gStr = (cursor ? "▶ " : "  ") + gear
     a(gStr, color, bold: bold).draw(at: CGPoint(x: lx + cGear, y: yi))
     if !atype.isEmpty  { a(atype,  color, bold: false).draw(at: CGPoint(x: lx + cType, y: yi)) }
@@ -184,10 +186,12 @@ func drawRowAt(idx: Int, gear: String, atype: String, label: String,
     if !cmd.isEmpty    { a(cmd,    color, bold: false).draw(at: CGPoint(x: lx + cCmd,  y: yi)) }
     a(shifts, color, bold: bold).draw(at: CGPoint(x: lx + cShi, y: yi))
     a(status, sc,    bold: bold).draw(at: CGPoint(x: lx + cStat, y: yi))
-    // right bar — approximate right edge
-    let rx = SHADOW + contentW - PAD_X + 2
+    // Right border: placed at same X as the '┐' in boxTop — (INNER+2) chars from lx,
+    // minus 1 char width because '┐' itself is 1 char wide and we want to overlap it exactly.
+    let rx = lx + CGFloat(INNER + 1) * charW
     a("│", BLUE, bold: true).draw(at: CGPoint(x: rx, y: yi))
 }
+
 
 // Grid header
 drawRowAt(idx: lineIdx, gear: "Gear", atype: "Action Type", label: "Label",
@@ -196,9 +200,11 @@ drawRowAt(idx: lineIdx, gear: "Gear", atype: "Action Type", label: "Label",
 lineIdx += 1
 
 // Separator row
-a("│", BLUE, bold: true).draw(at: CGPoint(x: SHADOW + PAD_X, y: Y(lineIdx)))
-a("│", BLUE, bold: true).draw(at: CGPoint(x: SHADOW + contentW - PAD_X + 2, y: Y(lineIdx)))
+let sepLx = SHADOW + PAD_X
+a("│", BLUE, bold: true).draw(at: CGPoint(x: sepLx, y: Y(lineIdx)))
+a("│", BLUE, bold: true).draw(at: CGPoint(x: sepLx + CGFloat(INNER + 1) * charW, y: Y(lineIdx)))
 lineIdx += 1
+
 
 struct GRow { let gear, atype, label, cmd, shifts, status, style: String }
 

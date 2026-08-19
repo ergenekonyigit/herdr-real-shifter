@@ -3,6 +3,10 @@
 **RealShifter** is a hardware-driven context & model switching plugin for [Herdr](https://github.com/ergenekonyigit/herdr). It maps **USB H-pattern manual gear shifters** (Logitech Driving Force Shifter) and hotkeys to model switches, effort tiers, and prompt actions across AI coding CLIs.
 
 <p align="center">
+  <img src="assets/realshifter.jpg" alt="RealShifter Logitech H-pattern shifter setup" width="100%" />
+</p>
+
+<p align="center">
   <img src="assets/realshifter-dashboard.png" alt="RealShifter TUI Dashboard" width="100%" />
 </p>
 
@@ -26,7 +30,7 @@
 - **OS**: macOS (native HID support), Linux, or Windows
 - **Rust Toolchain**: 1.80+ (`cargo`, `rustc`)
 - **Herdr**: `v0.7.0` or higher
-- **Hardware**: Logitech Driving Force Shifter + Arduino USB Adapter *(optional — hotkeys work without hardware)*
+- **Hardware**: Logitech Driving Force Shifter + Arduino USB Adapter _(optional — hotkeys work without hardware)_
 
 ### Build from Source
 
@@ -49,6 +53,7 @@ herdr plugin link .
 ```
 
 Herdr will automatically:
+
 - Compile release binaries.
 - Launch `realshifter-daemon --detach` in the background.
 - Register the TUI dashboard overlay pane.
@@ -98,15 +103,15 @@ herdr-real-shifter/
 
 Profiles live in `~/.config/realshifter/profiles/` (or `$HERDR_PLUGIN_CONFIG_DIR/profiles/`):
 
-| File | Purpose |
-| :--- | :--- |
-| `config.json` | Global settings (`test_mode`, `preferred_terminal`, active profile) |
-| `profiles/agy.json` | Antigravity model mappings |
-| `profiles/claude.json` | Claude Code profile |
-| `profiles/codex.json` | Codex CLI profile |
-| `profiles/opencode.json` | OpenCode CLI profile |
-| `profiles/pi.json` | Pi Coding Agent profile |
-| `profiles/custom.json` | User-defined custom commands |
+| File                     | Purpose                                                             |
+| :----------------------- | :------------------------------------------------------------------ |
+| `config.json`            | Global settings (`test_mode`, `preferred_terminal`, active profile) |
+| `profiles/agy.json`      | Antigravity model mappings                                          |
+| `profiles/claude.json`   | Claude Code profile                                                 |
+| `profiles/codex.json`    | Codex CLI profile                                                   |
+| `profiles/opencode.json` | OpenCode CLI profile                                                |
+| `profiles/pi.json`       | Pi Coding Agent profile                                             |
+| `profiles/custom.json`   | User-defined custom commands                                        |
 
 ### Gear Mapping Structure
 

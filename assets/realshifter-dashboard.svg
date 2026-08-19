@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1110 518" width="100%" height="100%">
+<defs>
+  <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+    <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.5"/>
+  </filter>
+  <linearGradient id="headerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#21252b"/>
+    <stop offset="100%" stop-color="#181a1f"/>
+  </linearGradient>
+</defs>
+  <rect x="8" y="8" width="1094" height="502" rx="12" ry="12" fill="#14161b" stroke="#282c34" stroke-width="1.5" filter="url(#shadow)"/>
+  <path d="M 8 20 Q 8 8 20 8 L 1090 8 Q 1102 8 1102 20 L 1102 42 L 8 42 Z" fill="url(#headerGrad)"/>
+  <line x1="8" y1="42" x2="1102" y2="42" stroke="#282c34" stroke-width="1"/>
+  <circle cx="28" cy="25" r="6" fill="#ff5f56" stroke="#e0443e" stroke-width="0.5"/>
+  <circle cx="48" cy="25" r="6" fill="#ffbd2e" stroke="#dea123" stroke-width="0.5"/>
+  <circle cx="68" cy="25" r="6" fill="#27c93f" stroke="#1aab29" stroke-width="0.5"/>
+  <text x="555.0" y="29" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#9da5b4" text-anchor="middle">RealShifter TUI Dashboard (Herdr Overlay)</text>
+  <g font-family="JetBrains Mono, Menlo, Monaco, Consolas, monospace" font-size="13" font-weight="500" xml:space="preserve">
+    <text x="24" y="68" fill="#61afef"> ┌ RealShifter Dashboard ───────────────────────────────────────────────────────────────────────────────────────────────────┐</text>
+    <text x="24" y="88" fill="#98c379"> │ RealShifter v0.1.0  [Theme: Dark]  |  🟢 ACTIVE: Antigravity (AGY)  | Current Gear:  [R]                                  │</text>
+    <text x="24" y="108" fill="#abb2bf"> └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</text>
+    <text x="24" y="128" fill="#61afef"> ┌ Profile View [Press &#x27;h/l&#x27; or &#x27;p&#x27; to switch | &#x27;Space&#x27; to set Active] ─────────────────────────────────────────────────────┐</text>
+    <text x="24" y="148" fill="#abb2bf"> │ 🟢 🛸 Antigravity (AGY) │ 🧠 Claude Code │ 💻 Codex CLI │ ⚡ OpenCode CLI │ π Pi Agent │ 🎛️ Custom / Multi-Tool              │</text>
+    <text x="24" y="168" fill="#abb2bf"> └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</text>
+    <text x="24" y="188" fill="#61afef"> ┌ Gear Mapping Status Grid [Use &#x27;j/k&#x27; to select, &#x27;Enter/e&#x27; to edit] ───────────────────────────────────────────────────────┐</text>
+    <text x="24" y="208" fill="#e5c07b"> │   Gear     Action Type        Label                    Command / Flag                        Shifts   Status             │</text>
+    <text x="24" y="228" fill="#abb2bf"> │                                                                                                                          │</text>
+    <text x="24" y="248" fill="#c678dd"> │▶   N       —                  —                        —                                       0      idle               │</text>
+    <text x="24" y="268" fill="#abb2bf"> │    1       🛸 Antigravity CLI Gemini 3.7 Flash (Low)   /model gemini-3.7-flash-low             6      idle               │</text>
+    <text x="24" y="288" fill="#abb2bf"> │    2       🛸 Antigravity CLI Gemini 3.7 Flash (Medium)/model gemini-3.7-flash-medium          5      idle               │</text>
+    <text x="24" y="308" fill="#abb2bf"> │    3       🛸 Antigravity CLI Gemini 3.7 Flash (High)  /model gemini-3.7-flash-high            4      idle               │</text>
+    <text x="24" y="328" fill="#abb2bf"> │    4       🛸 Antigravity CLI Gemini 3.1 Pro (High)    /model gemini-3.1-pro-high              1      idle               │</text>
+    <text x="24" y="348" fill="#abb2bf"> │    5       🛸 Antigravity CLI Claude Sonnet 4.6 (Think)/model claude-sonnet-4-6                4      idle               │</text>
+    <text x="24" y="368" fill="#abb2bf"> │    6       🛸 Antigravity CLI Claude Opus 4.6 (Thinkin)/model claude-opus-4-6-thinking         1      idle               │</text>
+    <text x="24" y="388" fill="#98c379"> │    R       📑 New Session(Tab)New AGY Session (Tab)    agy                                     9      🟢 ENGAGED         │</text>
+    <text x="24" y="408" fill="#abb2bf"> └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</text>
+    <text x="24" y="428" fill="#61afef"> ┌ Status &amp; Controls ───────────────────────────────────────────────────────────────────────────────────────────────────────┐</text>
+    <text x="24" y="448" fill="#abb2bf"> │ Last Action: New AGY Session (Tab) | Total Shifts: 30 | Device: Connected (Arduino Leonardo)                             │</text>
+    <text x="24" y="468" fill="#56b6c2"> │ Controls: [j/k]: Nav | [h/l/p]: Tab | [Space]: Active | [e/Enter]: Edit | [t]: Theme | [1-6/r]: Shift | [q]: Exit        │</text>
+    <text x="24" y="488" fill="#abb2bf"> └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘</text>
+  </g>
+</svg>

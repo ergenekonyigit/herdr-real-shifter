@@ -2,6 +2,10 @@
 
 **RealShifter** is a hardware-driven context & model switching plugin designed for [Herdr](https://github.com/ergenekonyigit/herdr) and AI CLI power-users. It maps **USB H-pattern manual gear shifters** (such as Logitech Driving Force Shifter) and configurable hotkeys directly to model switches, effort tiers, and prompt actions across modern AI coding CLIs (AGY / Antigravity, Claude Code, Codex CLI, OpenCode CLI, Pi Coding Agent).
 
+<p align="center">
+  <img src="assets/realshifter-dashboard.svg" alt="RealShifter TUI Dashboard" width="100%" />
+</p>
+
 ---
 
 ## 🌟 Key Features
